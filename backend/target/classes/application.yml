@@ -1,13 +1,25 @@
 spring:
-  profiles:
-    active: dev
   application:
     name: liter
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/liter}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:763}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: UTC
 
 server:
   port: 8080
 
-# Common Jackson settings
-spring.jackson:
-  date-format: yyyy-MM-dd HH:mm:ss
-  time-zone: UTC
+# Security / Token signing
+liter:
+  jwt:
+    secret: ${JWT_SECRET:dev_secret_signing_key_32_characters_minimum_length_for_hmac_sha256}
+    expiration-ms: ${JWT_EXPIRATION:86400000} # 24 hours

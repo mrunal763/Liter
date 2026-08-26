@@ -31,6 +31,43 @@ public class AuthController {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private com.liter.repository.DairyProfileRepository dairyProfileRepository;
+
+    @PostMapping("/register")
+    @org.springframework.transaction.annotation.Transactional
+    public ResponseEntity<?> registerUser(@Valid @RequestBody com.liter.dto.RegisterRequest registerRequest) {
+        if (userRepository.findByUsername(registerRequest.getUsername()).isPresent()) {
+            return ResponseEntity.badRequest().body("Error: Username is already taken!");
+        }
+
+        if (userRepository.findByEmail(registerRequest.getEmail()).isPresent()) {
+            return ResponseEntity.badRequest().body("Error: Email is already in use!");
+        }
+
+        // Create new user's account
+        User user = new User();
+        user.setUsername(registerRequest.getUsername());
+        user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
+        user.setEmail(registerRequest.getEmail());
+        user.setFullName(registerRequest.getFullName());
+        user.setRole("ROLE_OWNER");
+        user.setActive(true);
+
+        User savedUser = userRepository.save(user);
+
+        // Seed profile settings
+        com.liter.model.DairyProfile profile = new com.liter.model.DairyProfile();
+        profile.setBusinessName(registerRequest.getBusinessName());
+        profile.setOwnerName(registerRequest.getFullName());
+        dairyProfileRepository.save(profile);
+
+        return ResponseEntity.ok(new UserResponse(savedUser.getUsername(), savedUser.getEmail(), savedUser.getFullName(), savedUser.getRole()));
+    }
+
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
