@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -40,7 +40,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       <Sidebar />
       
       <Header 
-        businessName="Liter" 
+        businessName="Sachi Dudh Ganga" 
         session={estimatedSession}
         onMenuClick={() => setDrawerOpen(true)} 
       />

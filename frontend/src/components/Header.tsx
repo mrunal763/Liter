@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Menu, Sun, Moon } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -10,7 +10,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  businessName = 'Liter',
+  businessName = 'Sachi Dudh Ganga',
   session = 'MORNING',
   date = new Date(),
   onMenuClick

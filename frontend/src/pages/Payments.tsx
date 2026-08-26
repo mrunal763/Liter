@@ -25,7 +25,7 @@ export const Payments: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [showAddPanel, setShowAddPanel] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // New Payment Form State
@@ -110,14 +110,13 @@ export const Payments: React.FC = () => {
       if (response.ok) {
         setSuccessMsg('Payment recorded successfully! Outstanding balance updated.');
         fetchPayments();
-        setShowAddModal(false);
+        setShowAddPanel(false);
         setNewPay({
           customerId: '', paymentDate: format(new Date(), 'yyyy-MM-dd'), amount: '',
           paymentMethod: 'UPI', referenceNumber: '', notes: ''
         });
         setTimeout(() => setSuccessMsg(null), 4000);
       } else {
-        // Mock fallback push
         const custName = customers.find(c => c.id === Number(newPay.customerId))?.name || 'Customer';
         setPayments([
           {
@@ -132,7 +131,7 @@ export const Payments: React.FC = () => {
           },
           ...payments
         ]);
-        setShowAddModal(false);
+        setShowAddPanel(false);
       }
     } catch (err) {
       const custName = customers.find(c => c.id === Number(newPay.customerId))?.name || 'Customer';
@@ -149,7 +148,7 @@ export const Payments: React.FC = () => {
         },
         ...payments
       ]);
-      setShowAddModal(false);
+      setShowAddPanel(false);
     }
   };
 
@@ -161,12 +160,12 @@ export const Payments: React.FC = () => {
         <h3 style={{ fontSize: '18px' }}>Payments Ledger ({payments.length})</h3>
         
         <button 
-          onClick={() => setShowAddModal(true)}
+          onClick={() => setShowAddPanel(!showAddPanel)}
           className="btn-primary" 
           style={{ width: 'auto', display: 'flex', gap: '8px', padding: '10px 16px', borderRadius: '8px' }}
         >
-          <Plus size={18} />
-          <span>Add Payment</span>
+          {showAddPanel ? <X size={18} /> : <Plus size={18} />}
+          <span>{showAddPanel ? 'Close' : 'Add Payment'}</span>
         </button>
       </div>
 
@@ -185,6 +184,101 @@ export const Payments: React.FC = () => {
         }}>
           <CheckCircle size={18} />
           <span>{successMsg}</span>
+        </div>
+      )}
+
+      {/* Inline Add Payment Form Panel (NO POPUP!) */}
+      {showAddPanel && (
+        <div className="card" style={{ padding: '20px', borderLeft: '4px solid var(--primary-green)', backgroundColor: '#F0FDF4' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+            <h4 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--primary-green)' }}>
+              💵 Record Customer Payment (Inline)
+            </h4>
+            <button onClick={() => setShowAddPanel(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} /></button>
+          </div>
+
+          <form onSubmit={handleAddSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Select Customer *</label>
+              <select 
+                className="form-input" required
+                value={newPay.customerId} 
+                onChange={(e) => setNewPay({ ...newPay, customerId: e.target.value })}
+                style={{ background: '#fff' }}
+              >
+                <option value="">-- Choose Customer --</option>
+                {customers.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label">Payment Date</label>
+                <input 
+                  type="date" className="form-input" required
+                  value={newPay.paymentDate} 
+                  onChange={(e) => setNewPay({ ...newPay, paymentDate: e.target.value })}
+                  style={{ background: '#fff' }}
+                />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label">Amount Collected (₹) *</label>
+                <input 
+                  type="number" step="0.01" min="1" className="form-input" required
+                  placeholder="₹ 0.00"
+                  value={newPay.amount} 
+                  onChange={(e) => setNewPay({ ...newPay, amount: e.target.value })}
+                  style={{ background: '#fff' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label">Payment Method</label>
+                <select 
+                  className="form-input"
+                  value={newPay.paymentMethod} 
+                  onChange={(e) => setNewPay({ ...newPay, paymentMethod: e.target.value as any })}
+                  style={{ background: '#fff' }}
+                >
+                  <option value="UPI">UPI (PhonePe, GPay, Paytm)</option>
+                  <option value="CASH">Cash</option>
+                  <option value="BANK_TRANSFER">Bank Transfer (IMPS, NEFT)</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label">UPI Reference / UTR Number</label>
+                <input 
+                  type="text" className="form-input" 
+                  placeholder="e.g. UPI87249103"
+                  value={newPay.referenceNumber} 
+                  onChange={(e) => setNewPay({ ...newPay, referenceNumber: e.target.value })}
+                  style={{ background: '#fff' }}
+                />
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Notes</label>
+              <input 
+                type="text" className="form-input" 
+                placeholder="e.g. Cleared past due"
+                value={newPay.notes} 
+                onChange={(e) => setNewPay({ ...newPay, notes: e.target.value })}
+                style={{ background: '#fff' }}
+              />
+            </div>
+
+            <button type="submit" className="btn-primary" style={{ marginTop: '6px', padding: '10px' }}>
+              Save Payment Inline
+            </button>
+          </form>
         </div>
       )}
 
@@ -225,99 +319,6 @@ export const Payments: React.FC = () => {
               )}
             </div>
           ))}
-        </div>
-      )}
-
-      {/* Add Payment Modal */}
-      {showAddModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300,
-          padding: '16px'
-        }}>
-          <div className="card" style={{ maxWidth: '500px', width: '100%' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '18px' }}>Record Payment</h3>
-              <button onClick={() => setShowAddModal(false)}><X size={20} /></button>
-            </div>
-
-            <form onSubmit={handleAddSubmit}>
-              <div className="form-group">
-                <label className="form-label">Select Customer *</label>
-                <select 
-                  className="form-input" required
-                  value={newPay.customerId} 
-                  onChange={(e) => setNewPay({ ...newPay, customerId: e.target.value })}
-                  style={{ background: 'var(--white)' }}
-                >
-                  <option value="">-- Choose Customer --</option>
-                  {customers.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="billing-date-grid" style={{ gap: '12px', marginBottom: 0 }}>
-                <div className="form-group">
-                  <label className="form-label">Payment Date</label>
-                  <input 
-                    type="date" className="form-input" required
-                    value={newPay.paymentDate} 
-                    onChange={(e) => setNewPay({ ...newPay, paymentDate: e.target.value })}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Amount Collected (₹) *</label>
-                  <input 
-                    type="number" step="0.01" min="1" className="form-input" required
-                    placeholder="₹ 0.00"
-                    value={newPay.amount} 
-                    onChange={(e) => setNewPay({ ...newPay, amount: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Payment Method</label>
-                <select 
-                  className="form-input"
-                  value={newPay.paymentMethod} 
-                  onChange={(e) => setNewPay({ ...newPay, paymentMethod: e.target.value as any })}
-                  style={{ background: 'var(--white)' }}
-                >
-                  <option value="UPI">UPI (PhonePe, GPay, Paytm)</option>
-                  <option value="CASH">Cash</option>
-                  <option value="BANK_TRANSFER">Bank Transfer (IMPS, NEFT)</option>
-                  <option value="OTHER">Other</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">UPI Reference / UTR Number</label>
-                <input 
-                  type="text" className="form-input" 
-                  placeholder="e.g. UPI87249103"
-                  value={newPay.referenceNumber} 
-                  onChange={(e) => setNewPay({ ...newPay, referenceNumber: e.target.value })}
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Notes</label>
-                <input 
-                  type="text" className="form-input" 
-                  placeholder="e.g. Cleared past due"
-                  value={newPay.notes} 
-                  onChange={(e) => setNewPay({ ...newPay, notes: e.target.value })}
-                />
-              </div>
-
-              <button type="submit" className="btn-primary" style={{ marginTop: '12px' }}>
-                Save Payment
-              </button>
-            </form>
-          </div>
         </div>
       )}
 

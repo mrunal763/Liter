@@ -201,7 +201,7 @@ export const Home: React.FC = () => {
     },
     {
       stars: 5,
-      text: "The curd and paneer are exceptionally fresh and soft. We love that the milk has zero adulteration, directly from local cows.",
+      text: "The curd and paneer are exceptionally fresh and soft. We love that the milk has zero adulteration, directly from local buffaloes.",
       author: "Amit Patel",
       role: "Krishna Nagar Resident"
     },
@@ -1073,7 +1073,7 @@ export const Home: React.FC = () => {
             }}>
               <img 
                 src="/farm_animals.png" 
-                alt="Cow grazing on the dairy farm pasture" 
+                alt="Buffaloes on the dairy farm pasture" 
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               />
             </div>
@@ -1104,7 +1104,7 @@ export const Home: React.FC = () => {
               Healthy animals. Caring hands. Better dairy.
             </h3>
             <p style={{ color: 'var(--secondary-text)', lineHeight: 1.6 }}>
-              At Liter, we believe that pure, fresh milk is a result of absolute care. Our cows are fed organic fodder and handled by caring, local hands. This commitment ensures that every drop of milk is fresh, rich, and full of natural nutrients.
+              At Liter, we believe that pure, fresh milk is a result of absolute care. Our healthy buffaloes are fed organic fodder and handled by caring, local hands. This commitment ensures that every drop of buffalo milk is thick, fresh, rich, and full of natural nutrients.
             </p>
             <p style={{ color: 'var(--secondary-text)', lineHeight: 1.6 }}>
               By merging traditional animal husbandry values with LITER's modern tracking system, we keep delivery schedules accurate, transparent, and completely dependable.

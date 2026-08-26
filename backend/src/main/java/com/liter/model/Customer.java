@@ -36,6 +36,12 @@ public class Customer {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    @Column(name = "activation_date")
+    private LocalDate activationDate;
+
+    @Column(name = "deactivation_date")
+    private LocalDate deactivationDate;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -145,6 +151,22 @@ public class Customer {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public LocalDate getActivationDate() {
+        return activationDate;
+    }
+
+    public void setActivationDate(LocalDate activationDate) {
+        this.activationDate = activationDate;
+    }
+
+    public LocalDate getDeactivationDate() {
+        return deactivationDate;
+    }
+
+    public void setDeactivationDate(LocalDate deactivationDate) {
+        this.deactivationDate = deactivationDate;
     }
 
     public LocalDateTime getCreatedAt() {

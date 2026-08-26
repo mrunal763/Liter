@@ -2,11 +2,13 @@ package com.liter.controller;
 
 import com.liter.model.DairyProfile;
 import com.liter.repository.DairyProfileRepository;
+import com.liter.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -16,16 +18,19 @@ public class SettingsController {
     @Autowired
     private DairyProfileRepository dairyProfileRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
     @GetMapping("/profile")
     public ResponseEntity<DairyProfile> getProfile() {
         List<DairyProfile> profiles = dairyProfileRepository.findAll();
         if (profiles.isEmpty()) {
             // Seed a default profile
             DairyProfile defaultProfile = new DairyProfile();
-            defaultProfile.setBusinessName("Shree Krishna Dairy");
-            defaultProfile.setOwnerName("Krishna Patil");
+            defaultProfile.setBusinessName("Sachi Dudh Ganga");
+            defaultProfile.setOwnerName("Mrunal");
             defaultProfile.setMobileNumber("9876543210");
-            defaultProfile.setUpiId("krishnadairy@upi");
+            defaultProfile.setUpiId("sachidudhganga@upi");
             defaultProfile.setAddress("Krishna Farm, Pune");
             
             DairyProfile saved = dairyProfileRepository.save(defaultProfile);
@@ -53,4 +58,15 @@ public class SettingsController {
         DairyProfile saved = dairyProfileRepository.save(profile);
         return ResponseEntity.ok(saved);
     }
+
+    @DeleteMapping("/account")
+    @org.springframework.transaction.annotation.Transactional
+    public ResponseEntity<?> deleteAccount(Principal principal) {
+        if (principal != null) {
+            userRepository.findByUsername(principal.getName()).ifPresent(userRepository::delete);
+        }
+        dairyProfileRepository.deleteAll();
+        return ResponseEntity.ok("Account deleted successfully");
+    }
 }
+

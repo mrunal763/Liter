@@ -12,10 +12,10 @@ public class DairyProfile {
     private Long id;
 
     @Column(name = "business_name", nullable = false, length = 100)
-    private String businessName = "Shree Krishna Dairy";
+    private String businessName = "Sachi Dudh Ganga";
 
     @Column(name = "owner_name", nullable = false, length = 100)
-    private String ownerName = "Krishna Patil";
+    private String ownerName = "Mrunal";
 
     @Column(name = "mobile_number", length = 15)
     private String mobileNumber;
