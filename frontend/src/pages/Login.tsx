@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -124,7 +124,7 @@ export const Login: React.FC = () => {
           color: 'var(--secondary-text)',
           fontWeight: 500
         }}>
-          Shree Krishna Dairy &copy; {new Date().getFullYear()}
+          Liter &copy; {new Date().getFullYear()}
         </div>
       </div>
     </div>

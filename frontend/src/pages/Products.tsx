@@ -172,7 +172,7 @@ export const Products: React.FC = () => {
                 </select>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="billing-date-grid" style={{ gap: '12px', marginBottom: 0 }}>
                 <div className="form-group">
                   <label className="form-label">Unit</label>
                   <select 

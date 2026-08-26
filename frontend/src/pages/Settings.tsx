@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Settings as SettingsIcon, LogOut, CheckCircle, Save } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -7,7 +7,7 @@ export const Settings: React.FC = () => {
 
   const [profile, setProfile] = useState({
     id: 1,
-    businessName: 'Shree Krishna Dairy',
+    businessName: 'Liter',
     ownerName: 'Krishna Patil',
     mobileNumber: '9876543210',
     address: 'Krishna Farm, Pune Outskirts, Maharashtra',
@@ -93,7 +93,7 @@ export const Settings: React.FC = () => {
             type="text" className="form-input" required
             value={profile.businessName}
             onChange={(e) => setProfile({ ...profile, businessName: e.target.value })}
-            placeholder="e.g. Shree Krishna Dairy"
+            placeholder="e.g. Liter"
           />
         </div>
 

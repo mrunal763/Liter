@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Truck, UserPlus, CreditCard, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -14,7 +14,7 @@ export const Dashboard: React.FC = () => {
     customersServed: 0,
     outstandingAmount: 0
   });
-  const [businessName, setBusinessName] = useState('Shree Krishna Dairy');
+  const [businessName, setBusinessName] = useState('Liter');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -85,10 +85,7 @@ export const Dashboard: React.FC = () => {
           ₹{stats.todaySales.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
         </div>
         
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(3, 1fr)', 
-          gap: '12px',
+        <div className="stats-grid" style={{ 
           borderTop: '1px solid rgba(255, 255, 255, 0.2)',
           paddingTop: '16px'
         }}>
