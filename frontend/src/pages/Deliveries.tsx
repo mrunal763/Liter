@@ -119,7 +119,7 @@ export const Deliveries: React.FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       
       {/* Date & Session Selectors */}
-      <div className="card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', padding: '12px' }}>
+      <div className="card billing-date-grid" style={{ gap: '12px', padding: '12px', marginBottom: '16px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <label style={{ fontSize: '11px', color: 'var(--secondary-text)', fontWeight: 600 }}>DELIVERY DATE</label>
           <input 
@@ -274,17 +274,7 @@ export const Deliveries: React.FC = () => {
       {/* Floating Save Button */}
       <button 
         onClick={handleSave} 
-        className="btn-primary" 
-        style={{
-          position: 'sticky',
-          bottom: '80px', /* Hangs above BottomNav */
-          boxShadow: 'var(--shadow-lg)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '16px',
-          fontWeight: 700
-        }}
+        className="btn-primary sticky-bottom-btn" 
         disabled={loading}
       >
         <Save size={20} />

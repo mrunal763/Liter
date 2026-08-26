@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Calendar, Send, FileText, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
@@ -84,7 +84,7 @@ export const Billing: React.FC = () => {
     const startF = format(new Date(bill.billPeriodStart), 'dd MMM');
     const endF = format(new Date(bill.billPeriodEnd), 'dd MMM');
     
-    const text = `*Shree Krishna Dairy*
+    const text = `*Liter*
 *Bill Summary*
 ---------------------------------------
 Customer: *${bill.customerName}*
@@ -125,7 +125,7 @@ Thank you for your business! 🙏`;
           <span>Generate Bills</span>
         </h3>
         
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+        <div className="billing-date-grid">
           <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label">START DATE</label>
             <input 
@@ -179,67 +179,87 @@ Thank you for your business! 🙏`;
         </h3>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {bills.map(bill => (
-            <div key={bill.id} className="card" style={{ padding: '16px 12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <h4 style={{ fontSize: '16px', fontWeight: 600 }}>{bill.customerName}</h4>
-                    {getStatusBadge(bill.status)}
-                  </div>
-                  <p style={{ fontSize: '12px', color: 'var(--secondary-text)', marginTop: '4px' }}>
-                    Period: {format(new Date(bill.billPeriodStart), 'dd MMM')} to {format(new Date(bill.billPeriodEnd), 'dd MMM')}
-                  </p>
-                </div>
-                
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '18px', fontWeight: 700 }}>
-                    ₹{bill.totalAmount.toFixed(2)}
-                  </div>
-                  <div style={{ fontSize: '11px', color: 'var(--secondary-text)', marginTop: '2px' }}>
-                    Paid: ₹{bill.paidAmount.toFixed(2)}
-                  </div>
-                </div>
-              </div>
-
-              {/* Progress bar indicating outstanding */}
-              <div style={{ 
-                height: '6px', 
-                backgroundColor: 'var(--border-color)', 
-                borderRadius: '3px', 
-                margin: '12px 0',
-                overflow: 'hidden'
-              }}>
-                <div style={{ 
-                  height: '100%', 
-                  width: `${(bill.paidAmount / bill.totalAmount) * 100}%`, 
-                  backgroundColor: 'var(--primary-green)' 
-                }} />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: bill.outstandingAmount > 0 ? 'var(--error-color)' : 'var(--primary-green)' }}>
-                  {bill.outstandingAmount > 0 ? `Outstanding: ₹${bill.outstandingAmount.toFixed(2)}` : 'Fully Settled'}
-                </span>
-
-                <button
-                  onClick={() => handleShareWhatsApp(bill)}
-                  style={{
-                    backgroundColor: '#E8F5E9',
-                    color: '#2E7D32',
-                    padding: '8px 14px',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    gap: '6px'
-                  }}
-                >
-                  <Send size={14} />
-                  <span>Send Bill</span>
-                </button>
-              </div>
+          {bills.length === 0 ? (
+            <div className="card empty-state" style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '40px 20px',
+              textAlign: 'center',
+              gap: '12px',
+              border: '1px dashed var(--border-color)',
+              boxShadow: 'none'
+            }}>
+              <FileText size={40} style={{ color: 'var(--secondary-text)', opacity: 0.5 }} />
+              <h4 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--primary-text)', margin: 0 }}>No ledger statements yet</h4>
+              <p style={{ fontSize: '13px', color: 'var(--secondary-text)', maxWidth: '300px', margin: 0, lineHeight: 1.4 }}>
+                Generate bills for the selected period to compile ledger statements.
+              </p>
             </div>
-          ))}
+          ) : (
+            bills.map(bill => (
+              <div key={bill.id} className="card" style={{ padding: '16px 12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <h4 style={{ fontSize: '16px', fontWeight: 600 }}>{bill.customerName}</h4>
+                      {getStatusBadge(bill.status)}
+                    </div>
+                    <p style={{ fontSize: '12px', color: 'var(--secondary-text)', marginTop: '4px' }}>
+                      Period: {format(new Date(bill.billPeriodStart), 'dd MMM')} to {format(new Date(bill.billPeriodEnd), 'dd MMM')}
+                    </p>
+                  </div>
+                  
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '18px', fontWeight: 700 }}>
+                      ₹{bill.totalAmount.toFixed(2)}
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--secondary-text)', marginTop: '2px' }}>
+                      Paid: ₹{bill.paidAmount.toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Progress bar indicating outstanding */}
+                <div style={{ 
+                  height: '6px', 
+                  backgroundColor: 'var(--border-color)', 
+                  borderRadius: '3px', 
+                  margin: '12px 0',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{ 
+                    height: '100%', 
+                    width: `${(bill.paidAmount / bill.totalAmount) * 100}%`, 
+                    backgroundColor: 'var(--primary-green)' 
+                  }} />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: bill.outstandingAmount > 0 ? 'var(--error-color)' : 'var(--primary-green)' }}>
+                    {bill.outstandingAmount > 0 ? `Outstanding: ₹${bill.outstandingAmount.toFixed(2)}` : 'Fully Settled'}
+                  </span>
+
+                  <button
+                    onClick={() => handleShareWhatsApp(bill)}
+                    style={{
+                      backgroundColor: '#E8F5E9',
+                      color: '#2E7D32',
+                      padding: '8px 14px',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      gap: '6px'
+                    }}
+                  >
+                    <Send size={14} />
+                    <span>Send Bill</span>
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 

@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
+import { Sidebar } from './components/Sidebar';
 import { MoreDrawer } from './components/MoreDrawer';
 
 // Pages
+import { Home } from './pages/Home';
+import { Register } from './pages/Register';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Deliveries } from './pages/Deliveries';
@@ -26,21 +29,23 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const estimatedSession: 'MORNING' | 'EVENING' = (currentHour >= 6 && currentHour < 15) ? 'MORNING' : 'EVENING';
 
   // Extract titles or settings if needed
-  const isLoginPage = location.pathname === '/login';
+  const isPublicPage = ['/', '/login', '/register'].includes(location.pathname);
 
-  if (isLoginPage) {
+  if (isPublicPage) {
     return <>{children}</>;
   }
 
   return (
     <div className="app-container">
+      <Sidebar />
+      
       <Header 
-        businessName="Shree Krishna Dairy" 
+        businessName="Liter" 
         session={estimatedSession}
         onMenuClick={() => setDrawerOpen(true)} 
       />
       
-      <div style={{ display: 'flex', flex: 1 }}>
+      <div className="app-main-wrapper" style={{ display: 'flex', flex: 1, width: '100%' }}>
         <BottomNav onMoreClick={() => setDrawerOpen(true)} />
         
         <main className="main-content">
@@ -58,9 +63,11 @@ export const AppContent: React.FC = () => {
     <BrowserRouter>
       <AppLayout>
         <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           
-          <Route path="/" element={
+          <Route path="/dashboard" element={
             <ProtectedRoute>
               <Dashboard />
             </ProtectedRoute>
