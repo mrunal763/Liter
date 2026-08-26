@@ -17,6 +17,7 @@ public class Product {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private User user;
 
     @Column(nullable = false, length = 50)

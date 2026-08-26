@@ -5,11 +5,13 @@ import com.liter.model.User;
 import com.liter.repository.ProductRepository;
 import com.liter.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.security.Principal;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,15 +27,7 @@ public class ProductController {
 
     private User resolveCurrentUser(Principal principal) {
         if (principal != null) {
-            Optional<User> uOpt = userRepository.findByUsername(principal.getName());
-            if (uOpt.isPresent()) {
-                return uOpt.get();
-            }
-        }
-        // Fallback to first user in database
-        List<User> users = userRepository.findAll();
-        if (!users.isEmpty()) {
-            return users.get(0);
+            return userRepository.findByUsername(principal.getName()).orElse(null);
         }
         return null;
     }
@@ -41,16 +35,14 @@ public class ProductController {
     @GetMapping
     public ResponseEntity<List<Product>> getAllProducts(@RequestParam(required = false) Boolean active, Principal principal) {
         User currentUser = resolveCurrentUser(principal);
-        if (currentUser != null) {
-            if (active != null) {
-                return ResponseEntity.ok(productRepository.findByUserAndActive(currentUser, active));
-            }
-            return ResponseEntity.ok(productRepository.findByUser(currentUser));
+        if (currentUser == null) {
+            return ResponseEntity.ok(Collections.emptyList());
         }
+
         if (active != null) {
-            return ResponseEntity.ok(productRepository.findByActive(active));
+            return ResponseEntity.ok(productRepository.findByUserAndActive(currentUser, active));
         }
-        return ResponseEntity.ok(productRepository.findAll());
+        return ResponseEntity.ok(productRepository.findByUser(currentUser));
     }
 
     @PostMapping
@@ -60,10 +52,11 @@ public class ProductController {
         }
 
         User currentUser = resolveCurrentUser(principal);
-        if (currentUser != null) {
-            product.setUser(currentUser);
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
+        product.setUser(currentUser);
         Product saved = productRepository.save(product);
         return ResponseEntity.ok(saved);
     }
@@ -71,10 +64,11 @@ public class ProductController {
     @PutMapping("/{id}")
     public ResponseEntity<Product> updateProduct(@PathVariable Long id, @Valid @RequestBody Product productDetails, Principal principal) {
         User currentUser = resolveCurrentUser(principal);
-        Optional<Product> pOpt = currentUser != null 
-            ? productRepository.findByIdAndUser(id, currentUser)
-            : productRepository.findById(id);
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
 
+        Optional<Product> pOpt = productRepository.findByIdAndUser(id, currentUser);
         return pOpt.map(product -> {
             product.setName(productDetails.getName());
             product.setCategory(productDetails.getCategory());
@@ -90,10 +84,11 @@ public class ProductController {
     @PatchMapping("/{id}/status")
     public ResponseEntity<Product> toggleStatus(@PathVariable Long id, @RequestBody Product statusDetails, Principal principal) {
         User currentUser = resolveCurrentUser(principal);
-        Optional<Product> pOpt = currentUser != null 
-            ? productRepository.findByIdAndUser(id, currentUser)
-            : productRepository.findById(id);
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
 
+        Optional<Product> pOpt = productRepository.findByIdAndUser(id, currentUser);
         return pOpt.map(product -> {
             product.setActive(statusDetails.isActive());
             Product updated = productRepository.save(product);
@@ -104,10 +99,11 @@ public class ProductController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id, Principal principal) {
         User currentUser = resolveCurrentUser(principal);
-        Optional<Product> pOpt = currentUser != null 
-            ? productRepository.findByIdAndUser(id, currentUser)
-            : productRepository.findById(id);
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
 
+        Optional<Product> pOpt = productRepository.findByIdAndUser(id, currentUser);
         if (pOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
