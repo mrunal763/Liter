@@ -1,0 +1,13 @@
+spring:
+  profiles:
+    active: dev
+  application:
+    name: liter
+
+server:
+  port: 8080
+
+# Common Jackson settings
+spring.jackson:
+  date-format: yyyy-MM-dd HH:mm:ss
+  time-zone: UTC
