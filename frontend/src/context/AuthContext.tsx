@@ -24,17 +24,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
   useEffect(() => {
-    // Attempt to restore session from localStorage
+    // Attempt to restore session from localStorage (30-day retention)
     const savedToken = localStorage.getItem('liter_token');
     const savedUsername = localStorage.getItem('liter_username');
     const savedFullName = localStorage.getItem('liter_fullname');
+    const savedTimestamp = localStorage.getItem('liter_session_timestamp');
+
+    const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000; // 30 Days in milliseconds
 
     if (savedToken && savedUsername && savedFullName) {
-      setUser({
-        token: savedToken,
-        username: savedUsername,
-        fullName: savedFullName
-      });
+      const isExpired = savedTimestamp ? (Date.now() - Number(savedTimestamp) > ONE_MONTH_MS) : false;
+
+      if (!isExpired) {
+        if (!savedTimestamp) {
+          localStorage.setItem('liter_session_timestamp', Date.now().toString());
+        }
+        setUser({
+          token: savedToken,
+          username: savedUsername,
+          fullName: savedFullName
+        });
+      } else {
+        // Expired after 1 month
+        logout();
+      }
     }
     setLoading(false);
   }, []);
@@ -60,10 +73,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         fullName: data.fullName
       };
 
-      // Save to localStorage
+      // Save to localStorage with 30-day session timestamp
       localStorage.setItem('liter_token', data.token);
       localStorage.setItem('liter_username', data.username);
       localStorage.setItem('liter_fullname', data.fullName);
+      localStorage.setItem('liter_session_timestamp', Date.now().toString());
 
       setUser(sessionData);
       return true;
@@ -77,6 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('liter_token');
     localStorage.removeItem('liter_username');
     localStorage.removeItem('liter_fullname');
+    localStorage.removeItem('liter_session_timestamp');
     setUser(null);
   };
 

@@ -59,7 +59,7 @@ public class BillingAndPaymentTests {
 
         // 1. Create a Product (Milk - default price ₹60)
         product = new Product();
-        product.setName("Cow Milk");
+        product.setName("Milk");
         product.setCategory("Milk");
         product.setUnit("L");
         product.setDefaultPrice(new BigDecimal("60.00"));

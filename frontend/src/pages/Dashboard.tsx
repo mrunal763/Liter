@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Truck, UserPlus, CreditCard, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -14,7 +14,7 @@ export const Dashboard: React.FC = () => {
     customersServed: 0,
     outstandingAmount: 0
   });
-  const [businessName, setBusinessName] = useState('Liter');
+  const [businessName, setBusinessName] = useState('Sachi Dudh Ganga');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -54,8 +54,8 @@ export const Dashboard: React.FC = () => {
 
   const getGreeting = () => {
     const hr = new Date().getHours();
-    if (hr < 12) return 'Good Morning';
-    if (hr < 17) return 'Good Afternoon';
+    if (hr >= 5 && hr < 12) return 'Good Morning';
+    if (hr >= 12 && hr < 17) return 'Good Afternoon';
     return 'Good Evening';
   };
 
@@ -64,7 +64,7 @@ export const Dashboard: React.FC = () => {
       {/* Welcome banner */}
       <div>
         <div style={{ fontSize: '15px', color: 'var(--secondary-text)', fontWeight: 500 }}>
-          {getGreeting()}, {user?.fullName || 'Farmer'} 👋
+          {getGreeting()}, {user?.fullName || 'Mrunal'} 👋
         </div>
         <h2 style={{ fontSize: '24px', fontWeight: 800, marginTop: '2px', color: 'var(--primary-green)' }}>
           {businessName}

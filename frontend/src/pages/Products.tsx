@@ -1,26 +1,51 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Plus, X, Tag } from 'lucide-react';
+import { Package, Plus, X, Tag, Edit, Save, Trash2, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface Product {
   id?: number;
   name: string;
-  category: string;
-  unit: 'L' | 'ml' | 'kg' | 'g' | 'piece';
+  category: string; // Milk, Curd, Butter Milk, Paneer, Ghee
+  unit: string;
   defaultPrice: number;
   active: boolean;
-  description: string;
 }
+
+const CATEGORY_ICONS: Record<string, string> = {
+  'Milk': '🥛',
+  'Curd': '🥣',
+  'Butter Milk': '🥤',
+  'Paneer': '🧀',
+  'Ghee': '🧈'
+};
+
+const CATEGORIES = ['Milk', 'Curd', 'Butter Milk', 'Paneer', 'Ghee'];
 
 export const Products: React.FC = () => {
   const { authFetch } = useAuth();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
   
+  // Inline Panel States
+  const [showAddPanel, setShowAddPanel] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+
+  // Form States (Custom prices & units per category, default pack (sher))
   const [newProd, setNewProd] = useState<Product>({
-    name: '', category: 'Milk', unit: 'L', defaultPrice: 60.00, active: true, description: ''
+    name: 'Milk',
+    category: 'Milk',
+    unit: 'pack (sher)',
+    defaultPrice: 65.00,
+    active: true
+  });
+
+  const [editProd, setEditProd] = useState<Product>({
+    name: 'Milk',
+    category: 'Milk',
+    unit: 'pack (sher)',
+    defaultPrice: 65.00,
+    active: true
   });
 
   const fetchProducts = async () => {
@@ -29,189 +54,357 @@ export const Products: React.FC = () => {
       const response = await authFetch('/products');
       if (response.ok) {
         const data = await response.json();
-        setProducts(data);
+        setProducts(data || []);
       } else {
-        loadMockProducts();
+        setProducts([]);
       }
     } catch (e) {
-      loadMockProducts();
+      setProducts([]);
     } finally {
       setLoading(false);
     }
-  };
-
-  const loadMockProducts = () => {
-    setProducts([
-      { id: 1, name: 'Milk', category: 'Milk', unit: 'L', defaultPrice: 60.00, active: true, description: 'Fresh Cow Milk' },
-      { id: 2, name: 'Curd', category: 'Curd', unit: 'kg', defaultPrice: 80.00, active: true, description: 'Creamy Sour Curd' },
-      { id: 3, name: 'Paneer', category: 'Paneer', unit: 'kg', defaultPrice: 320.00, active: true, description: 'Soft Cottage Cheese' },
-      { id: 4, name: 'Ghee', category: 'Ghee', unit: 'kg', defaultPrice: 650.00, active: true, description: 'Pure Buffalo Ghee' },
-      { id: 5, name: 'Butter', category: 'Butter', unit: 'kg', defaultPrice: 420.00, active: true, description: '' },
-      { id: 6, name: 'Lassi', category: 'Lassi', unit: 'piece', defaultPrice: 20.00, active: true, description: 'Sweet Lassi bottle' }
-    ]);
   };
 
   useEffect(() => {
     fetchProducts();
   }, []);
 
+  const handleCategorySelect = (selectedCategory: string) => {
+    let defaultUnit = 'pack (sher)';
+    let defaultPrice = 65.00;
+
+    if (selectedCategory === 'Curd') {
+      defaultUnit = 'kg'; defaultPrice = 85.00;
+    } else if (selectedCategory === 'Butter Milk') {
+      defaultUnit = 'pack (sher)'; defaultPrice = 30.00;
+    } else if (selectedCategory === 'Paneer') {
+      defaultUnit = 'kg'; defaultPrice = 340.00;
+    } else if (selectedCategory === 'Ghee') {
+      defaultUnit = 'kg'; defaultPrice = 700.00;
+    }
+
+    setNewProd({
+      ...newProd,
+      category: selectedCategory,
+      name: selectedCategory,
+      unit: defaultUnit,
+      defaultPrice
+    });
+  };
+
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newProd.name.trim() || newProd.defaultPrice < 0) return;
+    if (!newProd.category || newProd.defaultPrice < 0) return;
+
+    const payload = {
+      ...newProd,
+      name: newProd.category
+    };
 
     try {
       const response = await authFetch('/products', {
         method: 'POST',
-        body: JSON.stringify(newProd)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       });
       if (response.ok) {
-        fetchProducts();
-        setShowAddModal(false);
-        setNewProd({ name: '', category: 'Milk', unit: 'L', defaultPrice: 60.00, active: true, description: '' });
+        const saved = await response.json();
+        setProducts(prev => [...prev.filter(p => p.id !== saved.id), saved]);
       } else {
-        setProducts([...products, { ...newProd, id: Date.now() }]);
-        setShowAddModal(false);
+        await fetchProducts();
       }
     } catch (err) {
-      setProducts([...products, { ...newProd, id: Date.now() }]);
-      setShowAddModal(false);
+      await fetchProducts();
+    }
+    setShowAddPanel(false);
+  };
+
+  const startEdit = (prod: Product) => {
+    setEditingId(prod.id!);
+    setEditProd({ ...prod });
+  };
+
+  const handleUpdateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editProd || !editProd.id) return;
+
+    const payload = {
+      ...editProd,
+      name: editProd.category
+    };
+
+    try {
+      const response = await authFetch(`/products/${editProd.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (response.ok) {
+        const updated = await response.json();
+        setProducts(products.map(p => p.id === updated.id ? updated : p));
+      } else {
+        await fetchProducts();
+      }
+    } catch (err) {
+      await fetchProducts();
+    }
+    setEditingId(null);
+  };
+
+  // Immediate Delete without confirmation (directly saves deletion to DB)
+  const handleDeleteProduct = async (id: number) => {
+    setProducts(prev => prev.filter(p => p.id !== id));
+
+    try {
+      await authFetch(`/products/${id}`, {
+        method: 'DELETE'
+      });
+    } catch (err) {
+      console.error('Error deleting product from database:', err);
     }
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       
-      {/* Title block */}
+      {/* Header bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h3 style={{ fontSize: '18px' }}>Available Products ({products.length})</h3>
+        <div>
+          <h3 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>Dairy Product Categories & Custom Rates</h3>
+          <p style={{ fontSize: '12px', color: 'var(--secondary-text)', marginTop: '2px' }}>
+            Create products by category with custom prices & units (including pack (sher)) saved directly to database
+          </p>
+        </div>
         
         <button 
-          onClick={() => setShowAddModal(true)}
+          onClick={() => {
+            setShowAddPanel(!showAddPanel);
+            setEditingId(null);
+          }}
           className="btn-primary" 
           style={{ width: 'auto', display: 'flex', gap: '8px', padding: '10px 16px', borderRadius: '8px' }}
         >
-          <Plus size={18} />
-          <span>New Product</span>
+          {showAddPanel ? <X size={18} /> : <Plus size={18} />}
+          <span>{showAddPanel ? 'Close' : 'Add Category'}</span>
         </button>
       </div>
 
-      {/* Grid List */}
-      {loading ? (
-        <div style={{ textAlign: 'center', padding: '32px', color: 'var(--secondary-text)' }}>Loading catalog...</div>
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
-          {products.map(p => (
-            <div key={p.id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <div style={{ 
-                  backgroundColor: 'var(--light-green)', 
-                  color: 'var(--primary-green)', 
-                  padding: '10px', 
-                  borderRadius: '10px' 
-                }}>
-                  <Package size={22} />
-                </div>
-                <div>
-                  <h4 style={{ fontSize: '16px', fontWeight: 600 }}>{p.name}</h4>
-                  <p style={{ fontSize: '12px', color: 'var(--secondary-text)', marginTop: '2px' }}>
-                    {p.description || 'No description'}
-                  </p>
-                </div>
-              </div>
+      {/* Inline Add Category Form Panel */}
+      {showAddPanel && (
+        <div className="card" style={{ padding: '20px', borderLeft: '4px solid var(--primary-green)', backgroundColor: '#F0FDF4' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+            <h4 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--primary-green)' }}>
+              ✨ Add Product Category with Custom Price
+            </h4>
+            <button onClick={() => setShowAddPanel(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} /></button>
+          </div>
 
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--primary-green)' }}>
-                  ₹{p.defaultPrice.toFixed(2)}
-                </div>
-                <div style={{ fontSize: '12px', color: 'var(--secondary-text)', marginTop: '2px' }}>
-                  per {p.unit}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Add Modal */}
-      {showAddModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300,
-          padding: '16px'
-        }}>
-          <div className="card" style={{ maxWidth: '500px', width: '100%' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '18px' }}>Add Product</h3>
-              <button onClick={() => setShowAddModal(false)}><X size={20} /></button>
+          <form onSubmit={handleAddSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label" style={{ fontWeight: 600 }}>Select Category *</label>
+              <select 
+                className="form-input"
+                value={newProd.category} 
+                onChange={(e) => handleCategorySelect(e.target.value)}
+                style={{ background: '#fff', fontSize: '15px', fontWeight: 700, padding: '10px' }}
+              >
+                {CATEGORIES.map(cat => (
+                  <option key={cat} value={cat}>
+                    {CATEGORY_ICONS[cat]} {cat}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            <form onSubmit={handleAddSubmit}>
-              <div className="form-group">
-                <label className="form-label">Product Name *</label>
-                <input 
-                  type="text" className="form-input" required
-                  value={newProd.name} onChange={(e) => setNewProd({ ...newProd, name: e.target.value })}
-                  placeholder="e.g. Paneer"
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Category</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontWeight: 600 }}>Unit *</label>
                 <select 
                   className="form-input"
-                  value={newProd.category} onChange={(e) => setNewProd({ ...newProd, category: e.target.value })}
-                  style={{ background: 'var(--white)', padding: '12px' }}
+                  value={newProd.unit} 
+                  onChange={(e) => setNewProd({ ...newProd, unit: e.target.value })}
+                  style={{ background: '#fff', fontWeight: 600 }}
                 >
-                  <option value="Milk">Milk</option>
-                  <option value="Curd">Curd</option>
-                  <option value="Ghee">Ghee</option>
-                  <option value="Paneer">Paneer</option>
-                  <option value="Butter">Butter</option>
-                  <option value="Lassi">Lassi</option>
-                  <option value="Other">Other</option>
+                  <option value="pack (sher)">pack (sher)</option>
+                  <option value="L">L (Liter)</option>
+                  <option value="kg">kg (Kilogram)</option>
+                  <option value="ml">ml (Milliliter)</option>
+                  <option value="g">g (Gram)</option>
                 </select>
               </div>
 
-              <div className="billing-date-grid" style={{ gap: '12px', marginBottom: 0 }}>
-                <div className="form-group">
-                  <label className="form-label">Unit</label>
-                  <select 
-                    className="form-input"
-                    value={newProd.unit} onChange={(e) => setNewProd({ ...newProd, unit: e.target.value as any })}
-                    style={{ background: 'var(--white)' }}
-                  >
-                    <option value="L">L</option>
-                    <option value="ml">ml</option>
-                    <option value="kg">kg</option>
-                    <option value="g">g</option>
-                    <option value="piece">piece</option>
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Default Price *</label>
-                  <input 
-                    type="number" step="0.01" className="form-input" required
-                    value={newProd.defaultPrice} onChange={(e) => setNewProd({ ...newProd, defaultPrice: Number(e.target.value) })}
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Description</label>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontWeight: 600 }}>Custom Price (₹) *</label>
                 <input 
-                  type="text" className="form-input" 
-                  value={newProd.description} onChange={(e) => setNewProd({ ...newProd, description: e.target.value })}
-                  placeholder="e.g. Soft Cottage Cheese"
+                  type="number" step="0.5" className="form-input" required
+                  value={newProd.defaultPrice} 
+                  onChange={(e) => setNewProd({ ...newProd, defaultPrice: Number(e.target.value) })}
                 />
               </div>
+            </div>
 
-              <button type="submit" className="btn-primary" style={{ marginTop: '12px' }}>Save Product</button>
-            </form>
-          </div>
+            <button type="submit" className="btn-primary" style={{ marginTop: '6px', padding: '10px' }}>
+              Save Product Category
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* Product List */}
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '32px', color: 'var(--secondary-text)' }}>Loading database products...</div>
+      ) : products.length === 0 ? (
+        <div className="card" style={{ padding: '36px', textAlign: 'center', color: 'var(--secondary-text)' }}>
+          <Package size={40} style={{ margin: '0 auto 12px', opacity: 0.5, color: 'var(--primary-green)' }} />
+          <h4 style={{ fontSize: '16px', fontWeight: 700, margin: '0 0 6px 0', color: 'var(--primary-text)' }}>
+            No Product Categories Added Yet
+          </h4>
+          <p style={{ fontSize: '13px', margin: 0 }}>
+            Click <strong>Add Category</strong> above to create your product categories with custom prices.
+          </p>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
+          {products.map(p => {
+            const icon = CATEGORY_ICONS[p.category] || CATEGORY_ICONS[p.name] || '🥛';
+            const isEditing = editingId === p.id;
+
+            if (isEditing) {
+              /* INLINE EDIT CARD */
+              return (
+                <div key={p.id} className="card" style={{ padding: '20px', borderLeft: '4px solid var(--primary-green)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <h4 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--primary-green)' }}>
+                      ✏️ Edit Category ({p.category})
+                    </h4>
+                    <button onClick={() => setEditingId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} /></button>
+                  </div>
+
+                  <form onSubmit={handleUpdateSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="form-label" style={{ fontWeight: 600 }}>Category Name</label>
+                        <select 
+                          className="form-input"
+                          value={editProd.category} 
+                          onChange={(e) => setEditProd({ ...editProd, category: e.target.value, name: e.target.value })}
+                          style={{ background: '#fff', fontWeight: 700 }}
+                        >
+                          {CATEGORIES.map(cat => (
+                            <option key={cat} value={cat}>{CATEGORY_ICONS[cat]} {cat}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="form-label" style={{ fontWeight: 600 }}>Unit</label>
+                        <select 
+                          className="form-input"
+                          value={editProd.unit} 
+                          onChange={(e) => setEditProd({ ...editProd, unit: e.target.value })}
+                          style={{ background: '#fff', fontWeight: 600 }}
+                        >
+                          <option value="pack (sher)">pack (sher)</option>
+                          <option value="L">L</option>
+                          <option value="kg">kg</option>
+                          <option value="ml">ml</option>
+                          <option value="g">g</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontWeight: 600 }}>Custom Price (₹ / unit)</label>
+                      <input 
+                        type="number" step="0.5" className="form-input" required
+                        value={editProd.defaultPrice} 
+                        onChange={(e) => setEditProd({ ...editProd, defaultPrice: Number(e.target.value) })}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                      <button type="submit" className="btn-primary" style={{ flex: 1, padding: '10px', display: 'flex', gap: '6px', justifyContent: 'center', alignItems: 'center' }}>
+                        <Save size={16} />
+                        <span>Save to Database</span>
+                      </button>
+                      <button type="button" onClick={() => setEditingId(null)} className="btn-secondary" style={{ padding: '10px 16px' }}>
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              );
+            }
+
+            return (
+              <div key={p.id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div style={{ 
+                    backgroundColor: 'var(--light-green)', fontSize: '24px',
+                    width: '46px', height: '46px', borderRadius: '12px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    {icon}
+                  </div>
+
+                  <div>
+                    <h4 style={{ fontSize: '18px', fontWeight: 700, margin: 0, color: 'var(--primary-text)' }}>
+                      {p.category || p.name}
+                    </h4>
+                    <span style={{ fontSize: '12px', color: 'var(--secondary-text)' }}>
+                      Unit: {p.unit}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--primary-green)' }}>
+                      ₹{p.defaultPrice.toFixed(2)}
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--secondary-text)', marginTop: '1px' }}>
+                      per {p.unit}
+                    </div>
+                  </div>
+
+                  {/* ACTION BUTTONS (DIRECT DELETE WITHOUT CONFIRMATION PROMPT) */}
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={() => startEdit(p)}
+                      style={{
+                        backgroundColor: 'var(--light-green)', color: 'var(--primary-green)',
+                        border: 'none', borderRadius: '8px', padding: '8px 12px',
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px',
+                        fontSize: '12px', fontWeight: 700
+                      }}
+                    >
+                      <Edit size={15} />
+                      <span>Update</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleDeleteProduct(p.id!)}
+                      style={{
+                        backgroundColor: '#FEE2E2', color: 'var(--error-color)',
+                        border: 'none', borderRadius: '8px', padding: '8px 12px',
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px',
+                        fontSize: '12px', fontWeight: 700
+                      }}
+                    >
+                      <Trash2 size={15} />
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
     </div>
   );
 };
+
+
+

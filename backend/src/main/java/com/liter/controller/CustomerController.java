@@ -46,25 +46,37 @@ public class CustomerController {
     }
 
     @PostMapping
-    public ResponseEntity<Customer> createCustomer(@Valid @RequestBody Customer customer) {
+    public ResponseEntity<?> createCustomer(@Valid @RequestBody Customer customer) {
         if (customer.getName() == null || customer.getName().trim().isEmpty()) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body("Error: Customer name is required.");
         }
+        
+        // Enforce unique customer name check
+        if (customerRepository.findByNameIgnoreCase(customer.getName().trim()).isPresent()) {
+            return ResponseEntity.badRequest().body("Error: A customer with name '" + customer.getName().trim() + "' already exists! Customer names must be unique.");
+        }
+
         if (customer.getStartDate() == null) {
             customer.setStartDate(LocalDate.now());
         }
+        customer.setActivationDate(customer.getStartDate());
         Customer saved = customerRepository.save(customer);
         return ResponseEntity.ok(saved);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Customer> updateCustomer(@PathVariable Long id, @Valid @RequestBody Customer customerDetails) {
+    public ResponseEntity<?> updateCustomer(@PathVariable Long id, @Valid @RequestBody Customer customerDetails) {
         return customerRepository.findById(id).map(customer -> {
-            customer.setName(customerDetails.getName());
+            // Enforce unique customer name check if name changed
+            if (!customer.getName().equalsIgnoreCase(customerDetails.getName().trim())) {
+                if (customerRepository.findByNameIgnoreCase(customerDetails.getName().trim()).isPresent()) {
+                    return ResponseEntity.badRequest().body("Error: Customer name '" + customerDetails.getName().trim() + "' is already taken.");
+                }
+            }
+
+            customer.setName(customerDetails.getName().trim());
             customer.setMobileNumber(customerDetails.getMobileNumber());
             customer.setAddress(customerDetails.getAddress());
-            customer.setVillage(customerDetails.getVillage());
-            customer.setLandmark(customerDetails.getLandmark());
             customer.setStartDate(customerDetails.getStartDate());
             customer.setNotes(customerDetails.getNotes());
             customer.setStatus(customerDetails.getStatus());
@@ -83,6 +95,11 @@ public class CustomerController {
 
         return customerRepository.findById(id).map(customer -> {
             customer.setStatus(newStatus);
+            if ("ACTIVE".equalsIgnoreCase(newStatus)) {
+                customer.setActivationDate(LocalDate.now());
+            } else if ("INACTIVE".equalsIgnoreCase(newStatus)) {
+                customer.setDeactivationDate(LocalDate.now());
+            }
             Customer updated = customerRepository.save(customer);
             return ResponseEntity.ok(updated);
         }).orElse(ResponseEntity.notFound().build());

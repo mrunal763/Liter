@@ -12,13 +12,17 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false, length = 100)
+    @Column(nullable = false, length = 100)
     private String name;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
 
     @Column(nullable = false, length = 50)
     private String category;
 
-    @Column(nullable = false, length = 10)
+    @Column(nullable = false, length = 50)
     private String unit;
 
     @Column(name = "default_price", nullable = false, precision = 10, scale = 2)
@@ -27,23 +31,19 @@ public class Product {
     @Column(nullable = false)
     private boolean active = true;
 
-    @Column(length = 255)
-    private String description;
-
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public Product() {
     }
 
-    public Product(Long id, String name, String category, String unit, BigDecimal defaultPrice, boolean active, String description, LocalDateTime createdAt) {
+    public Product(Long id, String name, String category, String unit, BigDecimal defaultPrice, boolean active, LocalDateTime createdAt) {
         this.id = id;
         this.name = name;
         this.category = category;
         this.unit = unit;
         this.defaultPrice = defaultPrice;
         this.active = active;
-        this.description = description;
         this.createdAt = createdAt;
     }
 
@@ -103,19 +103,19 @@ public class Product {
         this.active = active;
     }
 
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 }
