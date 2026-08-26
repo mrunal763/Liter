@@ -98,7 +98,7 @@ export const Products: React.FC = () => {
 
     const payload = {
       ...newProd,
-      name: newProd.category
+      name: newProd.name.trim() || newProd.category
     };
 
     try {
@@ -108,13 +108,10 @@ export const Products: React.FC = () => {
         body: JSON.stringify(payload)
       });
       if (response.ok) {
-        const saved = await response.json();
-        setProducts(prev => [...prev.filter(p => p.id !== saved.id), saved]);
-      } else {
         await fetchProducts();
       }
     } catch (err) {
-      await fetchProducts();
+      console.error('Error adding product:', err);
     }
     setShowAddPanel(false);
   };
@@ -130,7 +127,7 @@ export const Products: React.FC = () => {
 
     const payload = {
       ...editProd,
-      name: editProd.category
+      name: editProd.name.trim() || editProd.category
     };
 
     try {
@@ -140,9 +137,6 @@ export const Products: React.FC = () => {
         body: JSON.stringify(payload)
       });
       if (response.ok) {
-        const updated = await response.json();
-        setProducts(products.map(p => p.id === updated.id ? updated : p));
-      } else {
         await fetchProducts();
       }
     } catch (err) {
@@ -200,20 +194,33 @@ export const Products: React.FC = () => {
           </div>
 
           <form onSubmit={handleAddSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label" style={{ fontWeight: 600 }}>Select Category *</label>
-              <select 
-                className="form-input"
-                value={newProd.category} 
-                onChange={(e) => handleCategorySelect(e.target.value)}
-                style={{ background: '#fff', fontSize: '15px', fontWeight: 700, padding: '10px' }}
-              >
-                {CATEGORIES.map(cat => (
-                  <option key={cat} value={cat}>
-                    {CATEGORY_ICONS[cat]} {cat}
-                  </option>
-                ))}
-              </select>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontWeight: 600 }}>Select Category *</label>
+                <select 
+                  className="form-input"
+                  value={newProd.category} 
+                  onChange={(e) => handleCategorySelect(e.target.value)}
+                  style={{ background: '#fff', fontSize: '15px', fontWeight: 700, padding: '10px' }}
+                >
+                  {CATEGORIES.map(cat => (
+                    <option key={cat} value={cat}>
+                      {CATEGORY_ICONS[cat]} {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontWeight: 600 }}>Product Name *</label>
+                <input 
+                  type="text" className="form-input" required
+                  value={newProd.name} 
+                  onChange={(e) => setNewProd({ ...newProd, name: e.target.value })}
+                  placeholder="e.g. Milk, Curd 500g, Paneer 1kg"
+                  style={{ background: '#fff', fontWeight: 700, padding: '10px' }}
+                />
+              </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -266,11 +273,10 @@ export const Products: React.FC = () => {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
           {products.map(p => {
-            const icon = CATEGORY_ICONS[p.category] || CATEGORY_ICONS[p.name] || '🥛';
+            const icon = CATEGORY_ICONS[p.category] || '🥛';
             const isEditing = editingId === p.id;
 
             if (isEditing) {
-              /* INLINE EDIT CARD */
               return (
                 <div key={p.id} className="card" style={{ padding: '20px', borderLeft: '4px solid var(--primary-green)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
@@ -287,7 +293,7 @@ export const Products: React.FC = () => {
                         <select 
                           className="form-input"
                           value={editProd.category} 
-                          onChange={(e) => setEditProd({ ...editProd, category: e.target.value, name: e.target.value })}
+                          onChange={(e) => setEditProd({ ...editProd, category: e.target.value })}
                           style={{ background: '#fff', fontWeight: 700 }}
                         >
                           {CATEGORIES.map(cat => (
@@ -296,6 +302,18 @@ export const Products: React.FC = () => {
                         </select>
                       </div>
 
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="form-label" style={{ fontWeight: 600 }}>Product Name</label>
+                        <input 
+                          type="text" className="form-input" required
+                          value={editProd.name} 
+                          onChange={(e) => setEditProd({ ...editProd, name: e.target.value })}
+                          style={{ background: '#fff', fontWeight: 700 }}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                       <div className="form-group" style={{ marginBottom: 0 }}>
                         <label className="form-label" style={{ fontWeight: 600 }}>Unit</label>
                         <select 
@@ -311,15 +329,15 @@ export const Products: React.FC = () => {
                           <option value="g">g</option>
                         </select>
                       </div>
-                    </div>
 
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label className="form-label" style={{ fontWeight: 600 }}>Custom Price (₹ / unit)</label>
-                      <input 
-                        type="number" step="0.5" className="form-input" required
-                        value={editProd.defaultPrice} 
-                        onChange={(e) => setEditProd({ ...editProd, defaultPrice: Number(e.target.value) })}
-                      />
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="form-label" style={{ fontWeight: 600 }}>Custom Price (₹ / unit)</label>
+                        <input 
+                          type="number" step="0.5" className="form-input" required
+                          value={editProd.defaultPrice} 
+                          onChange={(e) => setEditProd({ ...editProd, defaultPrice: Number(e.target.value) })}
+                        />
+                      </div>
                     </div>
 
                     <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
@@ -349,10 +367,10 @@ export const Products: React.FC = () => {
 
                   <div>
                     <h4 style={{ fontSize: '18px', fontWeight: 700, margin: 0, color: 'var(--primary-text)' }}>
-                      {p.category || p.name}
+                      {p.name}
                     </h4>
                     <span style={{ fontSize: '12px', color: 'var(--secondary-text)' }}>
-                      Unit: {p.unit}
+                      Category: <strong>{p.category}</strong> • Unit: <strong>{p.unit}</strong>
                     </span>
                   </div>
                 </div>

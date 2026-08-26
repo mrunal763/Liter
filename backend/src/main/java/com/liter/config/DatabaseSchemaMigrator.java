@@ -22,7 +22,15 @@ public class DatabaseSchemaMigrator {
             logger.info("Migrating database schema for products table...");
             jdbcTemplate.execute("ALTER TABLE products ALTER COLUMN unit TYPE VARCHAR(50);");
             jdbcTemplate.execute("ALTER TABLE products DROP COLUMN IF EXISTS description;");
-            logger.info("Successfully migrated products table schema (unit column updated, description column removed).");
+            
+            // Drop any lingering unique constraint on products(name)
+            try {
+                jdbcTemplate.execute("DO $$ DECLARE r RECORD; BEGIN FOR r IN (SELECT constraint_name FROM information_schema.constraint_column_usage WHERE table_name = 'products' AND column_name = 'name') LOOP EXECUTE 'ALTER TABLE products DROP CONSTRAINT IF EXISTS ' || quote_ident(r.constraint_name); END LOOP; END $$;");
+            } catch (Exception ex) {
+                logger.warn("Could not drop unique constraint on products name: {}", ex.getMessage());
+            }
+
+            logger.info("Successfully migrated products table schema (unit column updated, description column removed, unique constraints dropped).");
         } catch (Exception e) {
             logger.warn("Database schema migration notice: {}", e.getMessage());
         }
