@@ -42,10 +42,8 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin())) // For H2 Console
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/login").permitAll()
-                .requestMatchers("/h2-console/**").permitAll() // H2 console permitted
+                .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
                 .anyRequest().authenticated()
             );
 
