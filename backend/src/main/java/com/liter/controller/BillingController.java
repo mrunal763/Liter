@@ -8,6 +8,8 @@ import com.liter.repository.BillItemRepository;
 import com.liter.repository.BillRepository;
 import com.liter.repository.CustomerRepository;
 import com.liter.service.BillingService;
+import com.liter.model.User;
+import com.liter.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -32,12 +34,21 @@ public class BillingController {
     @Autowired
     private CustomerRepository customerRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    private User getCurrentUser(java.security.Principal principal) {
+        if (principal == null) return null;
+        return userRepository.findByUsername(principal.getName()).orElse(null);
+    }
+
     @PostMapping("/generate")
-    public ResponseEntity<List<Bill>> generateBills(@RequestBody BillGenerationRequest request) {
+    public ResponseEntity<List<Bill>> generateBills(@RequestBody BillGenerationRequest request, java.security.Principal principal) {
         if (request.getStartDate() == null || request.getEndDate() == null) {
             return ResponseEntity.badRequest().build();
         }
 
+        User currentUser = getCurrentUser(principal);
         List<Bill> generatedBills = new ArrayList<>();
 
         if (request.getCustomerId() != null) {
@@ -51,8 +62,10 @@ public class BillingController {
                 return ResponseEntity.ok(generatedBills);
             }
         } else {
-            // Generate for all active customers
-            List<Customer> activeCustomers = customerRepository.findByStatus("ACTIVE");
+            // Generate for current user's active customers
+            List<Customer> activeCustomers = currentUser != null 
+                    ? customerRepository.findByUserAndStatus(currentUser, "ACTIVE")
+                    : new ArrayList<>();
             for (Customer customer : activeCustomers) {
                 try {
                     Bill bill = billingService.generateBillForCustomer(

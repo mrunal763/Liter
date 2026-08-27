@@ -1,6 +1,8 @@
 package com.liter.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -12,6 +14,11 @@ public class Customer {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    @JsonIgnore
+    private User user;
+
     @Column(nullable = false, length = 100)
     private String name;
 
@@ -20,12 +27,6 @@ public class Customer {
 
     @Column(length = 255)
     private String address;
-
-    @Column(length = 100)
-    private String village;
-
-    @Column(length = 100)
-    private String landmark;
 
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
@@ -36,28 +37,29 @@ public class Customer {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
-    @Column(name = "activation_date")
-    private LocalDate activationDate;
-
-    @Column(name = "deactivation_date")
-    private LocalDate deactivationDate;
-
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 
+    @Transient
+    private Long productId;
+
+    @Transient
+    private BigDecimal quantity;
+
+    @Transient
+    private BigDecimal rate;
+
     public Customer() {
     }
 
-    public Customer(Long id, String name, String mobileNumber, String address, String village, String landmark, LocalDate startDate, String status, String notes, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public Customer(Long id, String name, String mobileNumber, String address, LocalDate startDate, String status, String notes, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.name = name;
         this.mobileNumber = mobileNumber;
         this.address = address;
-        this.village = village;
-        this.landmark = landmark;
         this.startDate = startDate;
         this.status = status;
         this.notes = notes;
@@ -113,22 +115,6 @@ public class Customer {
         this.address = address;
     }
 
-    public String getVillage() {
-        return village;
-    }
-
-    public void setVillage(String village) {
-        this.village = village;
-    }
-
-    public String getLandmark() {
-        return landmark;
-    }
-
-    public void setLandmark(String landmark) {
-        this.landmark = landmark;
-    }
-
     public LocalDate getStartDate() {
         return startDate;
     }
@@ -153,22 +139,6 @@ public class Customer {
         this.notes = notes;
     }
 
-    public LocalDate getActivationDate() {
-        return activationDate;
-    }
-
-    public void setActivationDate(LocalDate activationDate) {
-        this.activationDate = activationDate;
-    }
-
-    public LocalDate getDeactivationDate() {
-        return deactivationDate;
-    }
-
-    public void setDeactivationDate(LocalDate deactivationDate) {
-        this.deactivationDate = deactivationDate;
-    }
-
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -181,7 +151,35 @@ public class Customer {
         return updatedAt;
     }
 
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public Long getProductId() {
+        return productId;
+    }
+
+    public void setProductId(Long productId) {
+        this.productId = productId;
+    }
+
+    public BigDecimal getQuantity() {
+        return quantity;
+    }
+
+    public void setQuantity(BigDecimal quantity) {
+        this.quantity = quantity;
+    }
+
+    public BigDecimal getRate() {
+        return rate;
+    }
+
+    public void setRate(BigDecimal rate) {
+        this.rate = rate;
     }
 }

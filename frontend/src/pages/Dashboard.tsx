@@ -134,7 +134,7 @@ export const Dashboard: React.FC = () => {
               <div>
                 <div style={{ fontWeight: 600, fontSize: '16px' }}>Record Today's Delivery</div>
                 <div style={{ fontSize: '12px', color: 'var(--secondary-text)', marginTop: '2px' }}>
-                  Log morning/evening milk runs
+                  Log daily milk deliveries & attendance
                 </div>
               </div>
             </div>
@@ -167,38 +167,6 @@ export const Dashboard: React.FC = () => {
                 <div style={{ fontWeight: 600, fontSize: '16px' }}>Add Customer</div>
                 <div style={{ fontSize: '12px', color: 'var(--secondary-text)', marginTop: '2px' }}>
                   Register a new subscriber
-                </div>
-              </div>
-            </div>
-            <ChevronRight size={20} style={{ color: 'var(--secondary-text)' }} />
-          </button>
-
-          <button 
-            onClick={() => navigate('/payments')}
-            className="card" 
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between',
-              width: '100%', 
-              textAlign: 'left',
-              padding: '16px',
-              cursor: 'pointer'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{ 
-                backgroundColor: 'var(--light-green)', 
-                color: 'var(--primary-green)', 
-                padding: '12px', 
-                borderRadius: '50%' 
-              }}>
-                <CreditCard size={20} />
-              </div>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: '16px' }}>Record Payment</div>
-                <div style={{ fontSize: '12px', color: 'var(--secondary-text)', marginTop: '2px' }}>
-                  Log cash, UPI, or bank transfer
                 </div>
               </div>
             </div>

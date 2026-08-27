@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface BillItemRepository extends JpaRepository<BillItem, Long> {
     List<BillItem> findByBillId(Long billId);
+    void deleteByBillCustomerId(Long customerId);
 }

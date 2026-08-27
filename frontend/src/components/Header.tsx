@@ -1,17 +1,15 @@
 import React from 'react';
-import { Menu, Sun, Moon } from 'lucide-react';
+import { Menu, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface HeaderProps {
   businessName?: string;
-  session?: 'MORNING' | 'EVENING';
   date?: Date;
   onMenuClick: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   businessName = 'Sachi Dudh Ganga',
-  session = 'MORNING',
   date = new Date(),
   onMenuClick
 }) => {
@@ -33,13 +31,8 @@ export const Header: React.FC<HeaderProps> = ({
           fontSize: '13px',
           fontWeight: 600
         }}>
-          {session === 'MORNING' ? (
-            <Sun size={15} style={{ color: '#FCD34D' }} />
-          ) : (
-            <Moon size={15} style={{ color: '#A7F3D0' }} />
-          )}
-          <span>{format(date, 'dd MMM')}</span>
-          <span style={{ fontSize: '11px', opacity: 0.8, textTransform: 'lowercase' }}>({session === 'MORNING' ? 'Morn' : 'Eve'})</span>
+          <Calendar size={15} style={{ color: '#A7F3D0' }} />
+          <span>{format(date, 'EEE, dd MMM yyyy')}</span>
         </div>
         
         <button 

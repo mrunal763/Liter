@@ -1,6 +1,7 @@
 package com.liter.controller;
 
 import com.liter.dto.CustomerConfigDto;
+import com.liter.dto.CustomerSummaryDto;
 import com.liter.model.Customer;
 import com.liter.model.CustomerPriceHistory;
 import com.liter.model.CustomerProductConfig;
@@ -21,6 +22,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.liter.model.User;
+import com.liter.repository.UserRepository;
+import java.security.Principal;
+
+import com.liter.repository.BillItemRepository;
+import com.liter.repository.BillRepository;
+import com.liter.repository.DeliveryTransactionRepository;
+
 @RestController
 @RequestMapping("/api/customers")
 public class CustomerController {
@@ -37,39 +46,118 @@ public class CustomerController {
     @Autowired
     private CustomerPriceHistoryRepository customerPriceHistoryRepository;
 
+    @Autowired
+    private DeliveryTransactionRepository deliveryTransactionRepository;
+
+    @Autowired
+    private BillRepository billRepository;
+
+    @Autowired
+    private BillItemRepository billItemRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    private User getCurrentUser(Principal principal) {
+        if (principal == null) return null;
+        return userRepository.findByUsername(principal.getName()).orElse(null);
+    }
+
     @GetMapping
-    public ResponseEntity<List<Customer>> getAllCustomers(@RequestParam(required = false) String status) {
-        if (status != null && !status.trim().isEmpty()) {
-            return ResponseEntity.ok(customerRepository.findByStatus(status.toUpperCase()));
+    public ResponseEntity<List<CustomerSummaryDto>> getAllCustomers(Principal principal) {
+        User currentUser = getCurrentUser(principal);
+        if (currentUser == null) {
+            return ResponseEntity.ok(new ArrayList<>());
         }
-        return ResponseEntity.ok(customerRepository.findAll());
+        List<Customer> customers = customerRepository.findByUser(currentUser);
+        List<CustomerSummaryDto> result = new ArrayList<>();
+        for (Customer c : customers) {
+            CustomerSummaryDto dto = new CustomerSummaryDto();
+            dto.setId(c.getId());
+            dto.setName(c.getName());
+            dto.setStartDate(c.getStartDate());
+            dto.setNotes(c.getNotes());
+            dto.setCreatedAt(c.getCreatedAt());
+            // Enrich with primary active subscription
+            List<CustomerProductConfig> configs = customerProductConfigRepository.findByCustomerIdAndActive(c.getId(), true);
+            if (!configs.isEmpty()) {
+                CustomerProductConfig primary = configs.get(0);
+                dto.setProductId(primary.getProduct().getId());
+                dto.setProductName(primary.getProduct().getName());
+                dto.setProductUnit(primary.getProduct().getUnit());
+                dto.setQuantity(primary.getDefaultQuantity());
+                dto.setRate(primary.getCustomPrice() != null ? primary.getCustomPrice() : primary.getProduct().getDefaultPrice());
+            }
+            result.add(dto);
+        }
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping
-    public ResponseEntity<?> createCustomer(@Valid @RequestBody Customer customer) {
+    public ResponseEntity<?> createCustomer(@Valid @RequestBody Customer customer, Principal principal) {
         if (customer.getName() == null || customer.getName().trim().isEmpty()) {
             return ResponseEntity.badRequest().body("Error: Customer name is required.");
         }
-        
-        // Enforce unique customer name check
-        if (customerRepository.findByNameIgnoreCase(customer.getName().trim()).isPresent()) {
-            return ResponseEntity.badRequest().body("Error: A customer with name '" + customer.getName().trim() + "' already exists! Customer names must be unique.");
+
+        User currentUser = getCurrentUser(principal);
+        if (currentUser != null) {
+            customer.setUser(currentUser);
+            if (customerRepository.findByNameIgnoreCaseAndUser(customer.getName().trim(), currentUser).isPresent()) {
+                return ResponseEntity.badRequest().body("Error: A customer with name '" + customer.getName().trim() + "' already exists in your list.");
+            }
+        } else {
+            return ResponseEntity.status(401).body("Error: Authentication required to create customer.");
         }
 
         if (customer.getStartDate() == null) {
             customer.setStartDate(LocalDate.now());
         }
-        customer.setActivationDate(customer.getStartDate());
         Customer saved = customerRepository.save(customer);
+
+        // Only create a product config if the customer explicitly selected a product
+        try {
+            Long prodId = customer.getProductId();
+            if (prodId != null && prodId > 0) {
+                Product product = productRepository.findById(prodId).orElse(null);
+                if (product != null) {
+                    BigDecimal qty = customer.getQuantity() != null && customer.getQuantity().compareTo(BigDecimal.ZERO) > 0
+                            ? customer.getQuantity() : BigDecimal.ONE;
+                    BigDecimal rate = customer.getRate() != null && customer.getRate().compareTo(BigDecimal.ZERO) > 0
+                            ? customer.getRate() : product.getDefaultPrice();
+
+                    // Upsert: avoid duplicate if config already exists
+                    CustomerProductConfig config = customerProductConfigRepository
+                            .findByCustomerIdAndProductId(saved.getId(), prodId)
+                            .orElseGet(() -> {
+                                CustomerProductConfig c = new CustomerProductConfig();
+                                c.setCustomer(saved);
+                                c.setProduct(product);
+                                return c;
+                            });
+                    config.setDefaultQuantity(qty);
+                    config.setCustomPrice(rate);
+                    config.setActive(true);
+                    customerProductConfigRepository.save(config);
+                }
+            }
+        } catch (Exception ex) {
+            // Non-fatal: subscription can be set later via the Setup panel
+        }
+
         return ResponseEntity.ok(saved);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateCustomer(@PathVariable Long id, @Valid @RequestBody Customer customerDetails) {
+    public ResponseEntity<?> updateCustomer(@PathVariable Long id, @Valid @RequestBody Customer customerDetails, Principal principal) {
+        User currentUser = getCurrentUser(principal);
         return customerRepository.findById(id).map(customer -> {
+            if (currentUser != null && customer.getUser() != null && !customer.getUser().getId().equals(currentUser.getId())) {
+                return ResponseEntity.status(403).body("Error: Access denied. Customer does not belong to you.");
+            }
+
             // Enforce unique customer name check if name changed
             if (!customer.getName().equalsIgnoreCase(customerDetails.getName().trim())) {
-                if (customerRepository.findByNameIgnoreCase(customerDetails.getName().trim()).isPresent()) {
+                if (currentUser != null && customerRepository.findByNameIgnoreCaseAndUser(customerDetails.getName().trim(), currentUser).isPresent()) {
                     return ResponseEntity.badRequest().body("Error: Customer name '" + customerDetails.getName().trim() + "' is already taken.");
                 }
             }
@@ -79,7 +167,7 @@ public class CustomerController {
             customer.setAddress(customerDetails.getAddress());
             customer.setStartDate(customerDetails.getStartDate());
             customer.setNotes(customerDetails.getNotes());
-            customer.setStatus(customerDetails.getStatus());
+            // Status is intentionally not updated from this endpoint
             
             Customer updated = customerRepository.save(customer);
             return ResponseEntity.ok(updated);
@@ -87,21 +175,38 @@ public class CustomerController {
     }
 
     @PatchMapping("/{id}/status")
-    public ResponseEntity<Customer> updateStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
+    public ResponseEntity<?> updateStatus(@PathVariable Long id, @RequestBody Map<String, String> body, Principal principal) {
+        User currentUser = getCurrentUser(principal);
         String newStatus = body.get("status");
         if (newStatus == null || (!newStatus.equals("ACTIVE") && !newStatus.equals("INACTIVE"))) {
             return ResponseEntity.badRequest().build();
         }
 
         return customerRepository.findById(id).map(customer -> {
-            customer.setStatus(newStatus);
-            if ("ACTIVE".equalsIgnoreCase(newStatus)) {
-                customer.setActivationDate(LocalDate.now());
-            } else if ("INACTIVE".equalsIgnoreCase(newStatus)) {
-                customer.setDeactivationDate(LocalDate.now());
+            if (currentUser != null && customer.getUser() != null && !customer.getUser().getId().equals(currentUser.getId())) {
+                return ResponseEntity.status(403).body("Access denied.");
             }
+            customer.setStatus(newStatus);
             Customer updated = customerRepository.save(customer);
             return ResponseEntity.ok(updated);
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id}")
+    @Transactional
+    public ResponseEntity<?> deleteCustomer(@PathVariable Long id, Principal principal) {
+        User currentUser = getCurrentUser(principal);
+        return customerRepository.findById(id).map(customer -> {
+            if (currentUser != null && customer.getUser() != null && !customer.getUser().getId().equals(currentUser.getId())) {
+                return ResponseEntity.status(403).body("Error: Access denied. Customer does not belong to you.");
+            }
+            customerProductConfigRepository.deleteByCustomerId(id);
+            customerPriceHistoryRepository.deleteByCustomerId(id);
+            deliveryTransactionRepository.deleteByCustomerId(id);
+            billItemRepository.deleteByBillCustomerId(id);
+            billRepository.deleteByCustomerId(id);
+            customerRepository.delete(customer);
+            return ResponseEntity.ok().body(Map.of("message", "Customer deleted successfully from database."));
         }).orElse(ResponseEntity.notFound().build());
     }
 
@@ -110,9 +215,14 @@ public class CustomerController {
     // ------------------------------------------------------------------------
 
     @GetMapping("/{id}/configs")
-    public ResponseEntity<List<CustomerConfigDto>> getCustomerConfigs(@PathVariable Long id) {
-        if (!customerRepository.existsById(id)) {
+    public ResponseEntity<List<CustomerConfigDto>> getCustomerConfigs(@PathVariable Long id, Principal principal) {
+        User currentUser = getCurrentUser(principal);
+        Customer customer = customerRepository.findById(id).orElse(null);
+        if (customer == null) {
             return ResponseEntity.notFound().build();
+        }
+        if (currentUser != null && customer.getUser() != null && !customer.getUser().getId().equals(currentUser.getId())) {
+            return ResponseEntity.status(403).build();
         }
 
         List<CustomerProductConfig> configs = customerProductConfigRepository.findByCustomerId(id);
@@ -120,7 +230,6 @@ public class CustomerController {
         List<CustomerConfigDto> dtoList = new ArrayList<>();
 
         for (Product product : allActiveProducts) {
-            // Find existing config or return a default blank one
             CustomerProductConfig match = configs.stream()
                     .filter(c -> c.getProduct().getId().equals(product.getId()))
                     .findFirst()
@@ -129,15 +238,13 @@ public class CustomerController {
             if (match != null) {
                 dtoList.add(new CustomerConfigDto(
                         product.getId(),
-                        match.getDefaultQtyMorning(),
-                        match.getDefaultQtyEvening(),
+                        match.getDefaultQuantity(),
                         match.getCustomPrice(),
                         match.isActive()
                 ));
             } else {
                 dtoList.add(new CustomerConfigDto(
                         product.getId(),
-                        BigDecimal.ZERO,
                         BigDecimal.ZERO,
                         null,
                         true
@@ -153,10 +260,16 @@ public class CustomerController {
     public ResponseEntity<CustomerConfigDto> updateCustomerConfig(
             @PathVariable Long customerId,
             @PathVariable Long productId,
-            @RequestBody CustomerConfigDto configDto) {
+            @RequestBody CustomerConfigDto configDto,
+            Principal principal) {
 
+        User currentUser = getCurrentUser(principal);
         Customer customer = customerRepository.findById(customerId)
                 .orElseThrow(() -> new IllegalArgumentException("Customer not found: " + customerId));
+
+        if (currentUser != null && customer.getUser() != null && !customer.getUser().getId().equals(currentUser.getId())) {
+            return ResponseEntity.status(403).build();
+        }
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Product not found: " + productId));
 
@@ -205,8 +318,7 @@ public class CustomerController {
         }
 
         // Apply changes
-        config.setDefaultQtyMorning(configDto.getDefaultQtyMorning());
-        config.setDefaultQtyEvening(configDto.getDefaultQtyEvening());
+        config.setDefaultQuantity(configDto.getDefaultQuantity());
         config.setCustomPrice(newPrice);
         config.setActive(configDto.isActive());
 
@@ -214,8 +326,7 @@ public class CustomerController {
 
         return ResponseEntity.ok(new CustomerConfigDto(
                 product.getId(),
-                saved.getDefaultQtyMorning(),
-                saved.getDefaultQtyEvening(),
+                saved.getDefaultQuantity(),
                 saved.getCustomPrice(),
                 saved.isActive()
         ));

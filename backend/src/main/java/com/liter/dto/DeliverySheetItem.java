@@ -14,6 +14,10 @@ public class DeliverySheetItem {
     private String status;
     private String notes;
 
+    private boolean isOverride;
+    private String overrideDiff;
+    private boolean isExtraProduct;
+
     public DeliverySheetItem() {
     }
 
@@ -28,6 +32,26 @@ public class DeliverySheetItem {
         this.appliedPrice = appliedPrice;
         this.status = status;
         this.notes = notes;
+        this.computeOverrideMetrics();
+    }
+
+    public void computeOverrideMetrics() {
+        if (defaultQuantity == null) defaultQuantity = BigDecimal.ZERO;
+        if (quantity == null) quantity = BigDecimal.ZERO;
+
+        this.isExtraProduct = (defaultQuantity.compareTo(BigDecimal.ZERO) == 0);
+        if ("DELIVERED".equalsIgnoreCase(status) && quantity.compareTo(defaultQuantity) != 0) {
+            this.isOverride = true;
+            BigDecimal diff = quantity.subtract(defaultQuantity);
+            if (diff.compareTo(BigDecimal.ZERO) > 0) {
+                this.overrideDiff = "+" + diff.toPlainString() + " " + (unit != null ? unit : "");
+            } else {
+                this.overrideDiff = diff.toPlainString() + " " + (unit != null ? unit : "");
+            }
+        } else {
+            this.isOverride = false;
+            this.overrideDiff = null;
+        }
     }
 
     // Getters and Setters
@@ -109,5 +133,29 @@ public class DeliverySheetItem {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public boolean isOverride() {
+        return isOverride;
+    }
+
+    public void setOverride(boolean override) {
+        isOverride = override;
+    }
+
+    public String getOverrideDiff() {
+        return overrideDiff;
+    }
+
+    public void setOverrideDiff(String overrideDiff) {
+        this.overrideDiff = overrideDiff;
+    }
+
+    public boolean isExtraProduct() {
+        return isExtraProduct;
+    }
+
+    public void setExtraProduct(boolean extraProduct) {
+        isExtraProduct = extraProduct;
     }
 }
