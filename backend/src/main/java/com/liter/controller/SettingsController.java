@@ -21,17 +21,13 @@ public class SettingsController {
     @Autowired
     private UserRepository userRepository;
 
-    @GetMapping("/profile")
+    @GetMapping({"", "/profile"})
     public ResponseEntity<DairyProfile> getProfile() {
         List<DairyProfile> profiles = dairyProfileRepository.findAll();
         if (profiles.isEmpty()) {
-            // Seed a default profile
             DairyProfile defaultProfile = new DairyProfile();
-            defaultProfile.setBusinessName("Sachi Dudh Ganga");
+            defaultProfile.setBusinessName("Made with ❤️ by Mrunal");
             defaultProfile.setOwnerName("Mrunal");
-            defaultProfile.setMobileNumber("9876543210");
-            defaultProfile.setUpiId("sachidudhganga@upi");
-            defaultProfile.setAddress("Krishna Farm, Pune");
             
             DairyProfile saved = dairyProfileRepository.save(defaultProfile);
             return ResponseEntity.ok(saved);

@@ -23,6 +23,7 @@ interface DeliveryItem {
   isOverride?: boolean;
   overrideDiff?: string;
   isExtraProduct?: boolean;
+  customerStartDate?: string;
 }
 
 interface Product {
@@ -42,11 +43,23 @@ interface CustomerGroup {
   items: DeliveryItem[];
 }
 
+const getISTTodayDateString = () => {
+  try {
+    const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).formatToParts(new Date());
+    const year = parts.find(p => p.type === 'year')?.value;
+    const month = parts.find(p => p.type === 'month')?.value;
+    const day = parts.find(p => p.type === 'day')?.value;
+    return `${year}-${month}-${day}`;
+  } catch (e) {
+    return format(new Date(), 'yyyy-MM-dd');
+  }
+};
+
 export const Deliveries: React.FC = () => {
   const { authFetch } = useAuth();
   
-  // Date & Session State
-  const [date, setDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+  // Date & Session State (IST Timezone Asia/Kolkata)
+  const [date, setDate] = useState<string>(getISTTodayDateString());
   // Deliveries & Products State
   const [deliveries, setDeliveries] = useState<DeliveryItem[]>([]);
   const [productsList, setProductsList] = useState<Product[]>([]);
@@ -143,6 +156,10 @@ export const Deliveries: React.FC = () => {
   const customerGroups: CustomerGroup[] = React.useMemo(() => {
     const map = new Map<number, CustomerGroup>();
     for (const d of deliveries) {
+      // Hide customer completely if selected delivery date is prior to customer creation date
+      if (d.customerStartDate && date < d.customerStartDate) {
+        continue;
+      }
       if (!map.has(d.customerId)) {
         map.set(d.customerId, {
           customerId: d.customerId,
@@ -153,7 +170,7 @@ export const Deliveries: React.FC = () => {
       map.get(d.customerId)!.items.push(d);
     }
     return Array.from(map.values());
-  }, [deliveries]);
+  }, [deliveries, date]);
 
   // Compute Overall Attendance Metrics
   const totalCustomersCount = customerGroups.length;
@@ -1090,6 +1107,27 @@ export const Deliveries: React.FC = () => {
                 >
                   Add
                 </button>
+              </div>
+
+              {/* Quick Preset Buttons for Extra Product Qty */}
+              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--secondary-text)' }}>Quick Qty Presets:</span>
+                {[0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0].map(q => (
+                  <button
+                    key={q}
+                    type="button"
+                    onClick={() => setExtraQty(q)}
+                    style={{
+                      padding: '3px 8px', borderRadius: '6px',
+                      border: extraQty === q ? '1px solid var(--primary-green)' : '1px solid var(--border-color)',
+                      backgroundColor: extraQty === q ? 'var(--primary-green)' : '#fff',
+                      color: extraQty === q ? '#fff' : 'var(--primary-text)',
+                      fontSize: '11px', fontWeight: 700, cursor: 'pointer'
+                    }}
+                  >
+                    {q} L
+                  </button>
+                ))}
               </div>
             </div>
 
