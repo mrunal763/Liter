@@ -117,15 +117,17 @@ public class DeliveryController {
                 }
             } else {
                 for (CustomerProductConfig config : configs) {
-                    BigDecimal defaultQty = config.getDefaultQuantity();
-                    if (defaultQty == null || defaultQty.compareTo(BigDecimal.ZERO) <= 0) {
-                        defaultQty = new BigDecimal("1.00");
-                    }
-
                     Product product = config.getProduct();
-
                     Optional<DeliveryTransaction> existingOpt = deliveryTransactionRepository
                             .findByCustomerIdAndProductIdAndDeliveryDate(customer.getId(), product.getId(), localDate);
+
+                    BigDecimal defaultQty = config.getDefaultQuantity();
+                    if (existingOpt.isEmpty() && (defaultQty == null || defaultQty.compareTo(BigDecimal.ZERO) <= 0)) {
+                        continue;
+                    }
+                    if (defaultQty == null) {
+                        defaultQty = BigDecimal.ZERO;
+                    }
 
                     if (existingOpt.isPresent()) {
                         DeliveryTransaction transaction = existingOpt.get();

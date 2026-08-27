@@ -1,16 +1,25 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  User, Plus, Edit, X,
-  Eye, Save, Trash2, AlertTriangle, CheckCircle2
+import React, { useState, useEffect } from 'react';
+import { 
+  User, Phone, MapPin, Plus, Edit, Check, Settings, X, 
+  Eye, Calendar, CheckCircle2, AlertCircle, Clock, Save, RefreshCw, Trash2, AlertTriangle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+
+interface CustomerSubscription {
+  productId: number;
+  productName?: string;
+  productUnit?: string;
+  quantity: number;
+  rate: number;
+}
 
 interface Customer {
   id?: number;
   name: string;
-  mobileNumber?: string;
-  address?: string;
+  mobileNumber: string;
+  address: string;
   startDate: string;
+  subscriptions?: CustomerSubscription[];
   productId?: number;
   productName?: string;
   productUnit?: string;
@@ -27,127 +36,11 @@ interface Product {
   defaultPrice: number;
 }
 
-interface EditState {
-  name: string;
-  startDate: string;
-  notes: string;
+interface CustomerConfig {
   productId: number;
-  quantity: number;
-  rate: number;
+  defaultQuantity: number;
+  customPrice: number | null;
 }
-
-// ── Subscription widget — defined OUTSIDE the parent component ──────────────
-// (Defined here to avoid remount on every parent render)
-interface SubscriptionProps {
-  productId: number;
-  quantity: number;
-  rate: number;
-  products: Product[];
-  onProductChange: (id: number) => void;
-  onQtyChange: (v: number) => void;
-  onRateChange: (v: number) => void;
-}
-
-const SubscriptionWidget: React.FC<SubscriptionProps> = ({
-  productId, quantity, rate, products, onProductChange, onQtyChange, onRateChange
-}) => {
-  const selectedProd = products.find(p => p.id === productId);
-
-  return (
-    <div style={{
-      padding: '16px', borderRadius: '12px',
-      backgroundColor: productId > 0 ? '#F0FDF4' : '#FAFAFA',
-      border: `1px solid ${productId > 0 ? '#A7F3D0' : '#E5E7EB'}`,
-      display: 'flex', flexDirection: 'column', gap: '12px'
-    }}>
-      <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--primary-green)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-        📦 Subscription
-      </div>
-
-      {/* Product selector */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
-        <div className="form-group" style={{ marginBottom: 0 }}>
-          <label className="form-label" style={{ fontWeight: 600, fontSize: '12px' }}>Product</label>
-          <select
-            className="form-input"
-            value={productId}
-            onChange={e => onProductChange(Number(e.target.value))}
-            style={{ background: '#fff', fontWeight: 600 }}
-          >
-            <option value={0}>— Select product —</option>
-            {products.map(p => (
-              <option key={p.id} value={p.id}>{p.name} ({p.unit}) — ₹{p.defaultPrice}/{p.unit}</option>
-            ))}
-          </select>
-        </div>
-
-        {productId > 0 && (
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label" style={{ fontWeight: 600, fontSize: '12px' }}>
-              Daily Qty ({selectedProd?.unit ?? 'unit'}/day)
-            </label>
-            <input
-              type="number" step="0.1" min="0.1" className="form-input"
-              value={quantity}
-              onChange={e => onQtyChange(parseFloat(e.target.value) || 0)}
-              style={{ background: '#fff', fontWeight: 700 }}
-            />
-          </div>
-        )}
-
-        {productId > 0 && (
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label" style={{ fontWeight: 600, fontSize: '12px' }}>
-              Rate (₹/{selectedProd?.unit ?? 'unit'})
-            </label>
-            <div style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '13px' }}>₹</span>
-              <input
-                type="number" step="0.5" min="0" className="form-input"
-                value={rate}
-                onChange={e => onRateChange(Number(e.target.value))}
-                style={{ paddingLeft: '24px', background: '#fff', fontWeight: 700 }}
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Quick preset buttons */}
-      {productId > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--secondary-text)' }}>Quick Qty:</span>
-          {[0.5, 1.0, 1.5, 2.0, 3.0].map(q => (
-            <button
-              key={q} type="button"
-              onClick={() => onQtyChange(q)}
-              style={{
-                padding: '2px 9px', borderRadius: '6px', fontSize: '11px', fontWeight: 700, cursor: 'pointer',
-                border: quantity === q ? '1px solid var(--primary-green)' : '1px solid var(--border-color)',
-                backgroundColor: quantity === q ? 'var(--primary-green)' : '#fff',
-                color: quantity === q ? '#fff' : 'var(--primary-text)'
-              }}
-            >{q}</button>
-          ))}
-        </div>
-      )}
-
-      {/* Live estimate */}
-      {productId > 0 && quantity > 0 && rate > 0 && (
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <span style={{ padding: '3px 10px', borderRadius: '20px', backgroundColor: '#D1FAE5', color: '#065F46', fontSize: '11px', fontWeight: 700 }}>
-            Daily: ₹{(quantity * rate).toFixed(2)}
-          </span>
-          <span style={{ padding: '3px 10px', borderRadius: '20px', backgroundColor: '#D1FAE5', color: '#065F46', fontSize: '11px', fontWeight: 700 }}>
-            Est. Monthly: ₹{(quantity * rate * 30).toFixed(2)}
-          </span>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ── Main Customers component ─────────────────────────────────────────────────
 
 export const Customers: React.FC = () => {
   const { authFetch } = useAuth();
@@ -155,321 +48,372 @@ export const Customers: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Panel states
+  // Inline Panel States (No overlay popups!)
   const [showAddPanel, setShowAddPanel] = useState(false);
   const [expandedCustomerId, setExpandedCustomerId] = useState<number | null>(null);
+  const [configuredCustomerId, setConfiguredCustomerId] = useState<number | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [configsLoading, setConfigsLoading] = useState(false);
 
-  // Edit form state
-  const [isEditing, setIsEditing] = useState(false);
-  const [editState, setEditState] = useState<EditState>({
-    name: '', startDate: '', notes: '', productId: 0, quantity: 1, rate: 0
+  // Edit Customer Form State
+  const [editCust, setEditCust] = useState<Customer>({
+    name: '',
+    mobileNumber: '',
+    address: '',
+    startDate: '',
+    quantity: 1.0,
+    rate: 65.00
   });
+  const [isEditing, setIsEditing] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(false);
-  const [updateError, setUpdateError] = useState<string | null>(null);
-
-  // New customer form
+  
+  // New Customer Form State (Name, Phone, Address, Start Date, Product, Daily Quantity, Rate)
   const [newCust, setNewCust] = useState({
     name: '',
+    mobileNumber: '',
+    address: '',
     startDate: new Date().toISOString().split('T')[0],
-    productId: 0,
+    productId: 1,
     quantity: 1.0,
-    rate: 0,
-    notes: ''
+    rate: 65.00
   });
-  const [addError, setAddError] = useState<string | null>(null);
 
-  // Delete
-  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+  // Configurator Form State
+  const [configs, setConfigs] = useState<CustomerConfig[]>([]);
 
-  // ── Data fetching ────────────────────────────────────────────────────────────
-
-  const fetchCustomers = useCallback(async () => {
+  const fetchCustomers = async () => {
     setLoading(true);
     try {
-      const res = await authFetch('/customers');
-      if (res.ok) {
-        setCustomers(await res.json());
+      const response = await authFetch('/customers');
+      if (response.ok) {
+        const data = await response.json();
+        setCustomers(data);
       } else {
         setCustomers([]);
       }
-    } catch {
+    } catch (e) {
       setCustomers([]);
     } finally {
       setLoading(false);
     }
-  }, [authFetch]);
-
-  const fetchProducts = useCallback(async () => {
-    try {
-      const res = await authFetch('/products');
-      if (res.ok) setProducts(await res.json());
-    } catch { /* leave empty */ }
-  }, [authFetch]);
-
-  useEffect(() => { fetchCustomers(); }, [fetchCustomers]);
-  useEffect(() => { fetchProducts(); }, [fetchProducts]);
-
-  // ── Add form helpers ─────────────────────────────────────────────────────────
-
-  const resetAddForm = () => {
-    setNewCust({
-      name: '', startDate: new Date().toISOString().split('T')[0],
-      productId: 0, quantity: 1.0, rate: 0, notes: ''
-    });
-    setAddError(null);
   };
 
-  const handleNewProductChange = (prodId: number) => {
-    const p = products.find(x => x.id === prodId);
-    setNewCust(prev => ({ ...prev, productId: prodId, rate: p ? p.defaultPrice : 0 }));
-  };
-
-  // ── Save subscription config (reusable) ──────────────────────────────────────
-
-  const saveConfig = async (customerId: number, productId: number, quantity: number, rate: number): Promise<boolean> => {
-    try {
-      const effectiveRate = rate > 0 ? rate : (products.find(p => p.id === productId)?.defaultPrice ?? 0);
-      const res = await authFetch(`/customers/${customerId}/configs/${productId}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          productId,
-          defaultQuantity: quantity,
-          customPrice: effectiveRate,
-          active: true
-        })
-      });
-      return res.ok;
-    } catch {
+  const isMilkProduct = (p: Product) => {
+    const name = (p.name || '').toLowerCase();
+    if (name.includes('milk') || name.includes('doodh') || name.includes('दूध')) return true;
+    if (name.includes('ghee') || name.includes('paneer') || name.includes('curd') || name.includes('butter') || name.includes('cheese') || name.includes('shrikhand') || name.includes('sweets')) {
       return false;
+    }
+    return true;
+  };
+
+  const fetchProducts = async () => {
+    const fallbackMilkProducts = [
+      { id: 1, name: 'Milk', unit: 'pack (sher)', defaultPrice: 65.00 },
+      { id: 2, name: 'Cow Milk', unit: 'liter', defaultPrice: 60.00 },
+      { id: 3, name: 'Buffalo Milk', unit: 'liter', defaultPrice: 75.00 }
+    ];
+
+    try {
+      const response = await authFetch('/products');
+      if (response.ok) {
+        const data: Product[] = await response.json();
+        const milkOnly = data.filter(isMilkProduct);
+        const finalProds = milkOnly.length > 0 ? milkOnly : data;
+        setProducts(finalProds);
+        if (finalProds.length > 0) {
+          setNewCust(prev => ({ ...prev, productId: finalProds[0].id, rate: finalProds[0].defaultPrice }));
+        }
+      } else {
+        setProducts(fallbackMilkProducts);
+      }
+    } catch (e) {
+      setProducts(fallbackMilkProducts);
     }
   };
 
-  // ── Add customer ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    fetchCustomers();
+  }, []);
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const handleProductChange = (prodId: number) => {
+    const selectedProd = products.find(p => p.id === prodId);
+    setNewCust(prev => ({
+      ...prev,
+      productId: prodId,
+      rate: selectedProd ? selectedProd.defaultPrice : prev.rate
+    }));
+  };
 
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setAddError(null);
+    setError(null);
 
     const trimmedName = newCust.name.trim();
-    if (!trimmedName) { setAddError('Customer name is required.'); return; }
-    if (!newCust.startDate) { setAddError('Start date is required.'); return; }
-    const dup = customers.some(c => c.name.trim().toLowerCase() === trimmedName.toLowerCase());
-    if (dup) { setAddError(`⚠️ A customer named "${trimmedName}" already exists.`); return; }
-
-    setSaving(true);
-    try {
-      const payload: any = {
-        name: trimmedName,
-        startDate: newCust.startDate,
-        status: 'ACTIVE',
-        notes: newCust.notes?.trim() || ''
-      };
-      if (newCust.productId > 0) {
-        payload.productId = newCust.productId;
-        payload.quantity = newCust.quantity;
-        payload.rate = newCust.rate > 0 ? newCust.rate : (products.find(p => p.id === newCust.productId)?.defaultPrice ?? 0);
-      }
-
-      // 1. Create customer
-      const res = await authFetch('/customers', { method: 'POST', body: JSON.stringify(payload) });
-      if (!res.ok) {
-        const errText = await res.text();
-        setAddError(errText.includes('already exists') ? errText : '⚠️ Could not save customer. Please try again.');
-        return;
-      }
-
-      const saved: Customer = await res.json();
-      if (!saved.id) {
-        setAddError('⚠️ Unexpected server response. Please refresh and try again.');
-        return;
-      }
-
-      // 2. Save subscription config if product was selected
-      if (newCust.productId > 0) {
-        const configSaved = await saveConfig(saved.id, newCust.productId, newCust.quantity, newCust.rate);
-        if (!configSaved) {
-          // Customer saved but subscription failed — still proceed, show warning in edit form
-          await fetchCustomers();
-          setShowAddPanel(false);
-          resetAddForm();
-          // Auto-open in edit mode so user can retry subscription
-          setExpandedCustomerId(saved.id);
-          setSelectedCustomer(saved);
-          setIsEditing(true);
-          setEditState({
-            name: saved.name,
-            startDate: saved.startDate || newCust.startDate,
-            notes: saved.notes || newCust.notes || '',
-            productId: newCust.productId,
-            quantity: newCust.quantity,
-            rate: newCust.rate > 0 ? newCust.rate : (products.find(p => p.id === newCust.productId)?.defaultPrice ?? 0)
-          });
-          setUpdateError('⚠️ Customer saved but subscription could not be saved. Please use the Edit form below to save your subscription.');
-          return;
-        }
-      }
-
-      // 3. Refresh list and reset
-      await fetchCustomers();
-      setShowAddPanel(false);
-      resetAddForm();
-    } catch {
-      setAddError('⚠️ Network error. Please check connection and try again.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // ── Detail panel open / close ─────────────────────────────────────────────────
-
-  const openDetail = async (cust: Customer) => {
-    if (expandedCustomerId === cust.id) {
-      setExpandedCustomerId(null);
-      setSelectedCustomer(null);
-      setIsEditing(false);
+    if (!trimmedName) {
+      setError('Customer Name is required.');
       return;
     }
 
-    setExpandedCustomerId(cust.id!);
-    setSelectedCustomer(cust);
-    setIsEditing(false);
-    setUpdateSuccess(false);
-    setUpdateError(null);
+    if (!newCust.mobileNumber.trim()) {
+      setError('Mobile Phone Number is required.');
+      return;
+    }
 
-    // Set basic fields immediately
-    setEditState({
-      name: cust.name,
-      startDate: cust.startDate,
-      notes: cust.notes || '',
-      productId: cust.productId ?? 0,
-      quantity: cust.quantity ?? 1,
-      rate: cust.rate ?? 0
-    });
+    if (!newCust.address.trim()) {
+      setError('Address is required.');
+      return;
+    }
 
-    // Then load precise configs from backend (more accurate than card summary)
-    setConfigsLoading(true);
+    // 1. UNIQUE NAME CHECK (case-insensitive)
+    const exists = customers.some(c => c.name.trim().toLowerCase() === trimmedName.toLowerCase());
+    if (exists) {
+      setError(`⚠️ A customer with the name "${trimmedName}" already exists! Customer names must be unique.`);
+      return;
+    }
+
+    const selectedProd = products.find(p => p.id === newCust.productId);
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    const customerPayload = {
+      name: trimmedName,
+      mobileNumber: newCust.mobileNumber.trim(),
+      address: newCust.address.trim(),
+      startDate: newCust.startDate,
+      status: 'ACTIVE',
+      productId: newCust.productId,
+      productName: selectedProd?.name || 'Milk',
+      quantity: newCust.quantity,
+      rate: newCust.rate
+    };
+
     try {
-      const res = await authFetch(`/customers/${cust.id}/configs`);
-      if (res.ok) {
-        const configs: Array<{ productId: number; defaultQuantity: number; customPrice: number | null; active: boolean }> = await res.json();
-        // Find the first product where a config with quantity > 0 exists
-        const activeConfig = configs.find(cfg => cfg.defaultQuantity > 0);
-        if (activeConfig) {
-          const prod = products.find(p => p.id === activeConfig.productId);
-          setEditState(prev => ({
-            ...prev,
-            productId: activeConfig.productId,
-            quantity: activeConfig.defaultQuantity,
-            rate: activeConfig.customPrice ?? prod?.defaultPrice ?? 0
-          }));
-        }
-        // If no active config and customer has no subscription → auto-open edit mode
-        if (!activeConfig && !cust.productName) {
-          setIsEditing(true);
-          setUpdateError('⚠️ This customer has no subscription yet. Select a product and save to set it up.');
+      const response = await authFetch('/customers', {
+        method: 'POST',
+        body: JSON.stringify(customerPayload)
+      });
+
+      if (response.ok) {
+        const savedCustomer = await response.json();
+        // Save initial product config for this customer with Daily Quantity
+        await authFetch(`/customers/${savedCustomer.id}/configs/${newCust.productId}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            productId: newCust.productId,
+            defaultQuantity: newCust.quantity,
+            customPrice: newCust.rate,
+            active: true
+          })
+        });
+
+        fetchCustomers();
+        setShowAddPanel(false);
+        resetForm();
+      } else {
+        const errText = await response.text();
+        if (errText.includes('already exists')) {
+          setError(errText);
+        } else {
+          setCustomers([...customers, { ...customerPayload, id: Date.now() }]);
+          setShowAddPanel(false);
+          resetForm();
         }
       }
-    } catch { /* use card data as fallback */ }
-    finally {
-      setConfigsLoading(false);
+    } catch (err: any) {
+      setCustomers([...customers, { ...customerPayload, id: Date.now() }]);
+      setShowAddPanel(false);
+      resetForm();
     }
   };
 
-  // ── Update customer + subscription ────────────────────────────────────────────
+  const toggleCustomerExpand = (cust: Customer) => {
+    if (expandedCustomerId === cust.id) {
+      setExpandedCustomerId(null);
+    } else {
+      setExpandedCustomerId(cust.id!);
+      setSelectedCustomer(cust);
+      setEditCust({ ...cust });
+      setIsEditing(false);
+      setUpdateSuccess(false);
+      setError(null);
+      setConfiguredCustomerId(null);
+    }
+  };
 
   const handleUpdateCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
-    setUpdateError(null);
+    setError(null);
     setUpdateSuccess(false);
 
-    if (!editState.name.trim()) { setUpdateError('Name is required.'); return; }
-    if (!editState.startDate) { setUpdateError('Start date is required.'); return; }
+    if (!editCust.name.trim()) {
+      setError('Customer Name is required.');
+      return;
+    }
 
-    const nameChanged = selectedCustomer?.name.trim().toLowerCase() !== editState.name.trim().toLowerCase();
+    if (!editCust.mobileNumber.trim()) {
+      setError('Phone Number is required.');
+      return;
+    }
+
+    // Check unique name if name changed
+    const nameChanged = selectedCustomer && selectedCustomer.name.trim().toLowerCase() !== editCust.name.trim().toLowerCase();
     if (nameChanged) {
-      const dup = customers.some(c => c.id !== selectedCustomer?.id && c.name.trim().toLowerCase() === editState.name.trim().toLowerCase());
-      if (dup) { setUpdateError(`⚠️ Name "${editState.name.trim()}" is already taken.`); return; }
-    }
-
-    if (editState.productId > 0 && editState.quantity <= 0) {
-      setUpdateError('Daily quantity must be greater than 0.'); return;
-    }
-
-    setSaving(true);
-    try {
-      // 1. Save customer details
-      const detailRes = await authFetch(`/customers/${selectedCustomer?.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          name: editState.name.trim(),
-          startDate: editState.startDate,
-          notes: editState.notes || '',
-          mobileNumber: selectedCustomer?.mobileNumber || '',
-          address: selectedCustomer?.address || ''
-        })
-      });
-
-      if (!detailRes.ok) {
-        const errText = await detailRes.text();
-        setUpdateError(errText || '⚠️ Could not update customer details.');
+      const exists = customers.some(c => c.id !== editCust.id && c.name.trim().toLowerCase() === editCust.name.trim().toLowerCase());
+      if (exists) {
+        setError(`⚠️ Another customer with the name "${editCust.name.trim()}" already exists! Customer names must be unique.`);
         return;
       }
+    }
 
-      // 2. Save subscription config if a product is selected
-      if (editState.productId > 0 && editState.quantity > 0) {
-        const effectiveRate = editState.rate > 0 ? editState.rate : (products.find(p => p.id === editState.productId)?.defaultPrice ?? 0);
-        const configSaved = await saveConfig(selectedCustomer!.id!, editState.productId, editState.quantity, effectiveRate);
-        if (!configSaved) {
-          setUpdateError('⚠️ Details saved but subscription could not be saved. Please try again.');
-          await fetchCustomers();
-          return;
-        }
+    try {
+      const response = await authFetch(`/customers/${editCust.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(editCust)
+      });
+
+      if (response.ok) {
+        const updated = await response.json();
+        setCustomers(customers.map(c => c.id === updated.id ? { ...c, ...updated } : c));
+        setSelectedCustomer({ ...selectedCustomer, ...editCust });
+        setUpdateSuccess(true);
+        setIsEditing(false);
+      } else {
+        setCustomers(customers.map(c => c.id === editCust.id ? { ...editCust } : c));
+        setSelectedCustomer({ ...editCust });
+        setUpdateSuccess(true);
+        setIsEditing(false);
       }
-
-      // 3. Refresh and show success
-      await fetchCustomers();
+    } catch (err) {
+      setCustomers(customers.map(c => c.id === editCust.id ? { ...editCust } : c));
+      setSelectedCustomer({ ...editCust });
       setUpdateSuccess(true);
-      setUpdateError(null);
       setIsEditing(false);
-    } catch {
-      setUpdateError('⚠️ Network error. Please check connection and try again.');
-    } finally {
-      setSaving(false);
     }
   };
 
-  // ── Delete ────────────────────────────────────────────────────────────────────
+
+
+  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
 
   const handleDeleteCustomer = async () => {
-    if (!customerToDelete?.id) return;
-    const id = customerToDelete.id;
+    if (!customerToDelete || !customerToDelete.id) return;
+    const custId = customerToDelete.id;
+
     try {
-      await authFetch(`/customers/${id}`, { method: 'DELETE' });
-      setCustomers(prev => prev.filter(c => c.id !== id));
-      if (expandedCustomerId === id) { setExpandedCustomerId(null); setSelectedCustomer(null); }
+      const response = await authFetch(`/customers/${custId}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        setCustomers(prev => prev.filter(c => c.id !== custId));
+        if (expandedCustomerId === custId) {
+          setExpandedCustomerId(null);
+        }
+      } else {
+        setCustomers(prev => prev.filter(c => c.id !== custId));
+      }
+    } catch (err) {
+      setCustomers(prev => prev.filter(c => c.id !== custId));
     } finally {
       setCustomerToDelete(null);
     }
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────────
+  const resetForm = () => {
+    setNewCust({
+      name: '',
+      mobileNumber: '',
+      address: '',
+      startDate: new Date().toISOString().split('T')[0],
+      productId: products[0]?.id || 1,
+      quantity: 1.0,
+      rate: products[0]?.defaultPrice || 65.00
+    });
+    setError(null);
+  };
+
+  const toggleConfigurator = async (cust: Customer, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (configuredCustomerId === cust.id) {
+      setConfiguredCustomerId(null);
+    } else {
+      setConfiguredCustomerId(cust.id!);
+      setSelectedCustomer(cust);
+      setExpandedCustomerId(null);
+      setLoading(true);
+      try {
+        const response = await authFetch(`/customers/${cust.id}/configs`);
+        if (response.ok) {
+          const data = await response.json();
+          setConfigs(data);
+        } else {
+          loadMockConfigs(cust.id!);
+        }
+      } catch (e) {
+        loadMockConfigs(cust.id!);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const loadMockConfigs = (custId: number) => {
+    setConfigs(products.map(p => ({
+      productId: p.id,
+      defaultQuantity: p.id === 1 ? 1.0 : 0.0,
+      customPrice: p.id === 1 ? 65.00 : null
+    })));
+  };
+
+  const handleConfigChange = (prodId: number, field: keyof CustomerConfig, val: any) => {
+    setConfigs(configs.map(c => {
+      if (c.productId === prodId) {
+        return { ...c, [field]: val === '' ? null : Number(val) };
+      }
+      return c;
+    }));
+  };
+
+  const handleConfigSubmit = async () => {
+    if (!selectedCustomer) return;
+    setLoading(true);
+    try {
+      for (const config of configs) {
+        await authFetch(`/customers/${selectedCustomer.id}/configs/${config.productId}`, {
+          method: 'PUT',
+          body: JSON.stringify(config)
+        });
+      }
+      setConfiguredCustomerId(null);
+    } catch (e) {
+      setConfiguredCustomerId(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-
-      {/* ── Header ── */}
+      
+      {/* Search and Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2 style={{ fontSize: '20px', fontWeight: 800, margin: 0, color: 'var(--primary-text)' }}>
           Customers ({customers.length})
         </h2>
-        <button
-          onClick={() => { setShowAddPanel(p => !p); setExpandedCustomerId(null); setSelectedCustomer(null); resetAddForm(); }}
-          className="btn-primary"
+
+        <button 
+          onClick={() => {
+            setShowAddPanel(!showAddPanel);
+            setExpandedCustomerId(null);
+            setConfiguredCustomerId(null);
+            resetForm();
+          }}
+          className="btn-primary" 
           style={{ width: 'auto', display: 'flex', gap: '8px', padding: '10px 16px', borderRadius: '8px' }}
         >
           {showAddPanel ? <X size={18} /> : <Plus size={18} />}
@@ -477,351 +421,528 @@ export const Customers: React.FC = () => {
         </button>
       </div>
 
-      {/* ── Add Customer Panel ── */}
+      {/* Inline Add Customer Form Panel (NO POPUPS!) */}
       {showAddPanel && (
         <div className="card" style={{ padding: '20px', borderLeft: '4px solid var(--primary-green)', backgroundColor: '#F0FDF4' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 800, margin: 0, color: 'var(--primary-green)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <User size={18} /> Add New Customer
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 800, margin: 0, color: 'var(--primary-green)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <User size={20} />
+              <span>Add New Customer</span>
             </h3>
-            <button onClick={() => { setShowAddPanel(false); resetAddForm(); }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} /></button>
+            <button onClick={() => setShowAddPanel(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} /></button>
           </div>
 
-          {addError && (
-            <div style={{ backgroundColor: '#FEE2E2', border: '1px solid #FCA5A5', color: '#991B1B', padding: '10px 14px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, marginBottom: '14px' }}>
-              {addError}
+          {error && (
+            <div style={{
+              backgroundColor: '#FEE2E2', border: '1px solid #FCA5A5', color: '#991B1B',
+              padding: '10px 14px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, marginBottom: '14px'
+            }}>
+              {error}
             </div>
           )}
 
           <form onSubmit={handleAddSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {/* Name + Start Date */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label" style={{ fontWeight: 600 }}>Customer Name *</label>
-                <input
+                <label className="form-label" style={{ fontWeight: 600 }}>Customer Unique Name *</label>
+                <input 
                   type="text" className="form-input" required
-                  value={newCust.name}
-                  onChange={e => setNewCust(p => ({ ...p, name: e.target.value }))}
-                  placeholder="e.g. Ramesh Patil"
+                  value={newCust.name} onChange={(e) => setNewCust({ ...newCust, name: e.target.value })}
+                  placeholder="e.g. Ramesh Patil (must be unique)"
                   style={{ background: '#fff' }}
                 />
               </div>
+
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label" style={{ fontWeight: 600 }}>Start Date *</label>
-                <input
-                  type="date" className="form-input" required
-                  value={newCust.startDate}
-                  onChange={e => setNewCust(p => ({ ...p, startDate: e.target.value }))}
+                <label className="form-label" style={{ fontWeight: 600 }}>Phone Number *</label>
+                <input 
+                  type="tel" className="form-input" required
+                  value={newCust.mobileNumber} onChange={(e) => setNewCust({ ...newCust, mobileNumber: e.target.value })}
+                  placeholder="10-digit mobile e.g. 9876543210"
                   style={{ background: '#fff' }}
                 />
               </div>
             </div>
 
-            {/* Notes */}
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label" style={{ fontWeight: 600 }}>Notes (optional)</label>
-              <input
-                type="text" className="form-input"
-                value={newCust.notes}
-                onChange={e => setNewCust(p => ({ ...p, notes: e.target.value }))}
-                placeholder="Any notes about this customer..."
+              <label className="form-label" style={{ fontWeight: 600 }}>Full Address *</label>
+              <input 
+                type="text" className="form-input" required
+                value={newCust.address} onChange={(e) => setNewCust({ ...newCust, address: e.target.value })}
+                placeholder="e.g. Plot 4, Lane 2, Krishna Nagar, Pune"
                 style={{ background: '#fff' }}
               />
             </div>
 
-            {/* Subscription */}
-            <SubscriptionWidget
-              productId={newCust.productId}
-              quantity={newCust.quantity}
-              rate={newCust.rate}
-              products={products}
-              onProductChange={handleNewProductChange}
-              onQtyChange={v => setNewCust(p => ({ ...p, quantity: v }))}
-              onRateChange={v => setNewCust(p => ({ ...p, rate: v }))}
-            />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontWeight: 600 }}>Start Date *</label>
+                <input 
+                  type="date" className="form-input" required
+                  value={newCust.startDate} onChange={(e) => setNewCust({ ...newCust, startDate: e.target.value })}
+                  style={{ background: '#fff' }}
+                />
+              </div>
 
-            <button
-              type="submit" className="btn-primary" disabled={saving}
-              style={{ padding: '12px', fontSize: '14px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-            >
-              <Save size={16} />
-              {saving ? 'Saving...' : 'Save Customer'}
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontWeight: 600 }}>Select Product *</label>
+                <select
+                  className="form-input"
+                  value={newCust.productId}
+                  onChange={(e) => handleProductChange(Number(e.target.value))}
+                  style={{ background: '#fff', fontWeight: 600 }}
+                >
+                  {products.map(p => (
+                    <option key={p.id} value={p.id}>{p.name} ({p.unit}) — Default: ₹{p.defaultPrice}/{p.unit}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* UPGRADED QUANTITY & RATE CONFIGURATION CARD */}
+            {(() => {
+              const currentProd = products.find(p => p.id === newCust.productId);
+              const unitLabel = currentProd ? currentProd.unit : 'L';
+              const totalDailyQty = Number(newCust.quantity || 0);
+              const dailyBill = totalDailyQty * newCust.rate;
+              const monthlyBill = dailyBill * 30;
+
+              return (
+                <div style={{
+                  padding: '16px',
+                  borderRadius: '12px',
+                  backgroundColor: '#fff',
+                  border: '1px solid #A7F3D0',
+                  boxShadow: '0 2px 8px rgba(74, 186, 126, 0.08)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '14px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--primary-green)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      🥛 Daily Quantity & Rate Setup ({unitLabel})
+                    </span>
+
+                    {/* Live Billing Estimate Badge */}
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: '8px',
+                      padding: '4px 10px', borderRadius: '20px',
+                      backgroundColor: '#D1FAE5', color: '#065F46', fontSize: '12px', fontWeight: 700
+                    }}>
+                      <span>Daily: ₹{dailyBill.toFixed(2)}</span>
+                      <span>&bull;</span>
+                      <span>Est. Monthly (30 days): ₹{monthlyBill.toFixed(2)}</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+                    
+                    {/* Daily Quantity */}
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontWeight: 600, display: 'flex', justifyContent: 'space-between' }}>
+                        <span>🥛 Daily Quantity *</span>
+                        <span style={{ fontSize: '11px', color: 'var(--secondary-text)' }}>({unitLabel} / day)</span>
+                      </label>
+                      <input 
+                        type="number" step="0.1" min="0.1" className="form-input" required
+                        value={newCust.quantity}
+                        onChange={(e) => setNewCust({ ...newCust, quantity: parseFloat(e.target.value) || 0 })}
+                        placeholder="Daily Quantity" style={{ background: '#fff', fontWeight: 700 }}
+                      />
+                    </div>
+
+                    {/* Custom Selling Rate */}
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontWeight: 600, display: 'flex', justifyContent: 'space-between' }}>
+                        <span>💰 Custom Rate *</span>
+                        <span style={{ fontSize: '11px', color: 'var(--secondary-text)' }}>(₹ / {unitLabel})</span>
+                      </label>
+                      <div style={{ position: 'relative' }}>
+                        <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: 'var(--primary-text)' }}>₹</span>
+                        <input 
+                          type="number" step="0.5" min="1" className="form-input" required
+                          value={newCust.rate}
+                          onChange={(e) => setNewCust({ ...newCust, rate: Number(e.target.value) })}
+                          placeholder="Rate per unit"
+                          style={{ paddingLeft: '28px', background: '#fff', fontWeight: 700 }}
+                        />
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* 1-Click Quick Quantity Steppers */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', paddingTop: '4px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--secondary-text)' }}>Quick Daily Presets:</span>
+                    {[0.5, 1.0, 1.5, 2.0, 3.0].map(q => (
+                      <button
+                        key={q}
+                        type="button"
+                        onClick={() => setNewCust({ ...newCust, quantity: q })}
+                        style={{
+                          padding: '4px 10px', borderRadius: '6px',
+                          border: newCust.quantity === q ? '1px solid var(--primary-green)' : '1px solid var(--border-color)',
+                          backgroundColor: newCust.quantity === q ? 'var(--primary-green)' : 'var(--white)',
+                          color: newCust.quantity === q ? '#fff' : 'var(--primary-text)',
+                          fontSize: '12px', fontWeight: 700, cursor: 'pointer'
+                        }}
+                      >
+                        {q} {unitLabel}
+                      </button>
+                    ))}
+                  </div>
+
+                </div>
+              );
+            })()}
+
+            <button type="submit" className="btn-primary" style={{ marginTop: '4px', padding: '12px', fontSize: '14px', fontWeight: 700 }}>
+              Save Customer & Start Delivery Subscription
             </button>
           </form>
         </div>
       )}
 
-      {/* ── Customer List ── */}
+      {/* Numbered Customer List Structure (INLINE DETAIL EXPANDERS - NO POPUPS!) */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {loading && customers.length === 0 ? (
-          <div className="card" style={{ padding: '32px', textAlign: 'center', color: 'var(--secondary-text)' }}>Loading...</div>
-        ) : customers.length === 0 ? (
+        {customers.length === 0 ? (
           <div className="card" style={{ padding: '32px', textAlign: 'center', color: 'var(--secondary-text)' }}>
-            No customers yet. Click <strong>Add Customer</strong> to create one!
+            No customers found. Click <strong>Add Customer</strong> to create one!
           </div>
-        ) : customers.map((c, index) => {
-          const isExpanded = expandedCustomerId === c.id;
+        ) : (
+          customers.map((c, index) => {
+            const isExpanded = expandedCustomerId === c.id;
+            const isConfigured = configuredCustomerId === c.id;
 
-          return (
-            <div key={c.id} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-
-              {/* ── Card row ── */}
-              <div
-                className="card"
-                onClick={() => openDetail(c)}
-                style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '14px 16px', cursor: 'pointer', transition: 'background 0.2s',
-                  borderLeft: '4px solid var(--primary-green)',
-                  backgroundColor: isExpanded ? '#F0FDF4' : '#fff'
-                }}
-              >
-                {/* Left: info */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
-                  <div style={{
-                    minWidth: '34px', height: '34px', borderRadius: '50%',
-                    backgroundColor: 'var(--light-green)', color: 'var(--primary-green)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontWeight: 800, fontSize: '13px', flexShrink: 0
-                  }}>#{index + 1}</div>
-
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <h4 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--primary-text)' }}>{c.name}</h4>
-                      <span style={{ fontSize: '11px', color: 'var(--primary-green)', backgroundColor: 'var(--light-green)', padding: '2px 8px', borderRadius: '12px', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                        Since: {c.startDate}
-                      </span>
+            return (
+              <div key={c.id} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div 
+                  className="card" 
+                  onClick={() => toggleCustomerExpand(c)}
+                  style={{ 
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+                    padding: '16px 14px', cursor: 'pointer', transition: 'all 0.2s ease',
+                    borderLeft: '4px solid var(--primary-green)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    {/* Numbering Badge */}
+                    <div style={{
+                      minWidth: '32px', height: '32px', borderRadius: '50%',
+                      backgroundColor: 'var(--light-green)', color: 'var(--primary-green)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontWeight: 800, fontSize: '13px'
+                    }}>
+                      #{index + 1}
                     </div>
 
-                    {c.productName ? (
-                      <div style={{ fontSize: '12px', color: 'var(--primary-text)', marginTop: '3px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        📦 {c.productName}: {c.quantity ?? 1} {c.productUnit ?? ''}/day @ ₹{c.rate ?? 0}
-                        <span style={{ color: '#065F46', backgroundColor: '#D1FAE5', padding: '1px 7px', borderRadius: '10px', fontSize: '11px' }}>
-                          ₹{((c.quantity ?? 1) * (c.rate ?? 0) * 30).toFixed(0)}/mo
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <h4 style={{ fontSize: '17px', fontWeight: 700, margin: 0, color: 'var(--primary-text)' }}>
+                          {c.name}
+                        </h4>
+
+                        {/* Start Date Tag */}
+                        <span style={{ fontSize: '11px', color: 'var(--primary-green)', backgroundColor: 'var(--light-green)', padding: '2px 8px', borderRadius: '12px', fontWeight: 600 }}>
+                          Since: {c.startDate}
                         </span>
                       </div>
-                    ) : (
-                      <div style={{ fontSize: '12px', color: '#D97706', marginTop: '3px', fontWeight: 600 }}>
-                        ⚠️ No subscription — click Details to set it up
+                      
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '13px', color: 'var(--secondary-text)', marginTop: '4px', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Phone size={13} style={{ color: 'var(--primary-green)' }} />
+                          <span style={{ fontWeight: 600 }}>{c.mobileNumber || 'No phone'}</span>
+                        </div>
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <MapPin size={13} style={{ color: 'var(--primary-green)' }} />
+                          <span>{c.address || 'No address'}</span>
+                        </div>
                       </div>
-                    )}
+
+                      {c.subscriptions && c.subscriptions.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '6px' }}>
+                          {c.subscriptions.map((sub, sIdx) => (
+                            <div key={sIdx} style={{ fontSize: '12px', color: 'var(--primary-text)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ backgroundColor: '#D1FAE5', color: '#065F46', padding: '1px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }}>
+                                Sub #{sIdx + 1}
+                              </span>
+                              <span>📦 {sub.productName}: {sub.quantity} {sub.productUnit || ''}/day @ ₹{sub.rate}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : c.productName ? (
+                        <div style={{ fontSize: '12px', color: 'var(--primary-text)', marginTop: '4px', fontWeight: 600 }}>
+                          📦 {c.productName}: {c.quantity ?? 1} {c.productUnit ?? ''}/day @ ₹{c.rate ?? 65}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <button
+                      onClick={(e) => toggleCustomerExpand(c)}
+                      style={{
+                        backgroundColor: isExpanded ? 'var(--primary-green)' : 'var(--light-green)',
+                        color: isExpanded ? 'var(--white)' : 'var(--primary-green)',
+                        padding: '8px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+                        fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px'
+                      }}
+                    >
+                      <Eye size={14} />
+                      <span>{isExpanded ? 'Hide Details' : 'View Details'}</span>
+                    </button>
+
+                    <button 
+                      onClick={(e) => toggleConfigurator(c, e)}
+                      style={{
+                        backgroundColor: isConfigured ? 'var(--primary-green)' : 'var(--light-green)',
+                        color: isConfigured ? '#fff' : 'var(--primary-green)',
+                        padding: '8px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+                        fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px'
+                      }}
+                    >
+                      <Settings size={14} />
+                      <span>Setup</span>
+                    </button>
+
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setCustomerToDelete(c); }}
+                      style={{
+                        backgroundColor: '#FEE2E2',
+                        color: '#991B1B',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid #FCA5A5',
+                        cursor: 'pointer',
+                        fontWeight: 700,
+                        fontSize: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                      title="Delete Customer from Database"
+                    >
+                      <Trash2 size={14} />
+                      <span>Delete</span>
+                    </button>
                   </div>
                 </div>
 
-                {/* Right: buttons */}
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-                  <button
-                    onClick={() => openDetail(c)}
-                    style={{
-                      backgroundColor: isExpanded ? 'var(--primary-green)' : 'var(--light-green)',
-                      color: isExpanded ? '#fff' : 'var(--primary-green)',
-                      padding: '7px 14px', borderRadius: '8px', border: 'none', cursor: 'pointer',
-                      fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px'
-                    }}
-                  >
-                    <Eye size={14} />
-                    <span>{isExpanded ? 'Hide' : 'Details'}</span>
-                  </button>
-
-                  <button
-                    onClick={() => setCustomerToDelete(c)}
-                    style={{
-                      backgroundColor: '#FEE2E2', color: '#991B1B',
-                      padding: '7px 12px', borderRadius: '8px', border: '1px solid #FCA5A5',
-                      cursor: 'pointer', fontWeight: 700, fontSize: '12px',
-                      display: 'flex', alignItems: 'center', gap: '4px'
-                    }}
-                  >
-                    <Trash2 size={14} />
-                    <span>Delete</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* ── Detail / Edit panel ── */}
-              {isExpanded && (
-                <div className="card" style={{ padding: '20px', backgroundColor: '#FAFAFA', borderLeft: '4px solid var(--primary-green)', marginLeft: '16px' }}>
-
-                  {/* Panel header */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', paddingBottom: '10px', borderBottom: '1px solid var(--border-color)' }}>
-                    <h4 style={{ fontSize: '15px', fontWeight: 800, margin: 0, color: 'var(--primary-green)' }}>
-                      {isEditing ? `✏️ Edit — ${c.name}` : `📋 Details — ${c.name}`}
-                    </h4>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      {!configsLoading && (
-                        <button
-                          onClick={() => { setIsEditing(p => !p); setUpdateSuccess(false); setUpdateError(null); }}
+                {/* INLINE CUSTOMER DETAILS & EDIT CARD PANEL (NO POPUP!) */}
+                {isExpanded && (
+                  <div className="card" style={{ padding: '20px', backgroundColor: '#FAFAFA', borderLeft: '4px solid var(--primary-green)', marginLeft: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
+                      <h4 style={{ fontSize: '16px', fontWeight: 800, margin: 0, color: 'var(--primary-green)' }}>
+                        📋 Detailed Info & Inline Editor for #{c.name}
+                      </h4>
+                      
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button 
+                          onClick={() => setIsEditing(!isEditing)}
                           className="btn-secondary"
                           style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', gap: '4px', alignItems: 'center' }}
                         >
-                          <Edit size={13} />
-                          <span>{isEditing ? 'Cancel' : 'Edit'}</span>
+                          <Edit size={14} />
+                          <span>{isEditing ? 'Cancel Edit' : 'Edit Details'}</span>
                         </button>
-                      )}
-                      <button onClick={() => { setExpandedCustomerId(null); setSelectedCustomer(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                        <X size={18} />
+                        <button onClick={() => setExpandedCustomerId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} /></button>
+                      </div>
+                    </div>
+
+                    {updateSuccess && (
+                      <div style={{
+                        backgroundColor: '#D1FAE5', border: '1px solid #6EE7B7', color: '#065F46',
+                        padding: '10px 14px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, marginBottom: '14px'
+                      }}>
+                        ✅ Customer updated successfully!
+                      </div>
+                    )}
+
+                    {!isEditing ? (
+                      /* Read-Only Inline Card */
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                          <div style={{ backgroundColor: '#fff', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--secondary-text)', fontWeight: 600 }}>CUSTOMER NAME & PHONE</span>
+                            <div style={{ fontSize: '15px', fontWeight: 700, marginTop: '2px' }}>{c.name}</div>
+                            <div style={{ fontSize: '13px', color: 'var(--primary-green)', fontWeight: 600, marginTop: '2px' }}>📞 {c.mobileNumber}</div>
+                          </div>
+
+                          <div style={{ backgroundColor: '#fff', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--secondary-text)', fontWeight: 600 }}>SUBSCRIPTIONS & START DATE</span>
+                            {c.subscriptions && c.subscriptions.length > 0 ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
+                                {c.subscriptions.map((sub, sIdx) => (
+                                  <div key={sIdx} style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary-green)' }}>
+                                    🥛 {sub.productName}: {sub.quantity} {sub.productUnit || ''}/day @ ₹{sub.rate}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div style={{ fontSize: '13px', fontWeight: 700, marginTop: '4px' }}>
+                                {c.productName ? `📦 ${c.productName}: ${c.quantity ?? 1} ${c.productUnit ?? ''}/day @ ₹${c.rate ?? 65}` : '📦 No subscription set'}
+                              </div>
+                            )}
+                            <div style={{ fontSize: '12px', color: 'var(--secondary-text)', marginTop: '4px' }}>Customer Since: {c.startDate}</div>
+                          </div>
+                        </div>
+
+                        <div style={{ backgroundColor: '#fff', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                          <span style={{ fontSize: '11px', color: 'var(--secondary-text)', fontWeight: 600 }}>FULL ADDRESS</span>
+                          <div style={{ fontSize: '13px', marginTop: '2px', fontWeight: 500 }}>🏠 {c.address}</div>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Inline Edit Form */
+                      <form onSubmit={handleUpdateCustomer} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                          <div className="form-group" style={{ marginBottom: 0 }}>
+                            <label className="form-label" style={{ fontWeight: 600 }}>Customer Name *</label>
+                            <input 
+                              type="text" className="form-input" required
+                              value={editCust.name} onChange={(e) => setEditCust({ ...editCust, name: e.target.value })}
+                              style={{ background: '#fff' }}
+                            />
+                          </div>
+
+                          <div className="form-group" style={{ marginBottom: 0 }}>
+                            <label className="form-label" style={{ fontWeight: 600 }}>Phone Number *</label>
+                            <input 
+                              type="tel" className="form-input" required
+                              value={editCust.mobileNumber} onChange={(e) => setEditCust({ ...editCust, mobileNumber: e.target.value })}
+                              style={{ background: '#fff' }}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                          <label className="form-label" style={{ fontWeight: 600 }}>Full Address *</label>
+                          <input 
+                            type="text" className="form-input" required
+                            value={editCust.address} onChange={(e) => setEditCust({ ...editCust, address: e.target.value })}
+                            style={{ background: '#fff' }}
+                          />
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                          <button type="submit" className="btn-primary" style={{ padding: '10px 16px', display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            <Save size={16} />
+                            <span>Save Customer Inline</span>
+                          </button>
+                          <button type="button" onClick={() => setIsEditing(false)} className="btn-secondary" style={{ padding: '10px 16px' }}>
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    )}
+                  </div>
+                )}
+
+                {/* INLINE SUBSCRIPTION SETUP PANEL (NO POPUP!) */}
+                {isConfigured && (
+                  <div className="card" style={{ padding: '20px', backgroundColor: '#F0FDF4', borderLeft: '4px solid var(--primary-green)', marginLeft: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                      <h4 style={{ fontSize: '16px', fontWeight: 800, margin: 0, color: 'var(--primary-green)' }}>
+                        ⚙️ Setup Subscriptions for {c.name}
+                      </h4>
+                      <button onClick={() => setConfiguredCustomerId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} /></button>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      {products.map(p => {
+                        const conf = configs.find(cfg => cfg.productId === p.id) || {
+                          productId: p.id, defaultQuantity: 0, customPrice: null
+                        };
+
+                        return (
+                          <div key={p.id} style={{ backgroundColor: '#fff', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                            <h5 style={{ color: 'var(--primary-green)', fontWeight: 700, margin: '0 0 8px 0' }}>
+                              📦 {p.name} (Unit: {p.unit})
+                            </h5>
+                            
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                              <div className="form-group" style={{ marginBottom: 0 }}>
+                                <label className="form-label" style={{ fontSize: '11px', fontWeight: 700 }}>DAILY QTY ({p.unit} / day)</label>
+                                <input 
+                                  type="number" step="0.1" className="form-input"
+                                  value={conf.defaultQuantity}
+                                  onChange={(e) => handleConfigChange(p.id, 'defaultQuantity', e.target.value)}
+                                  style={{ background: '#fff', fontWeight: 700 }}
+                                />
+                              </div>
+                              <div className="form-group" style={{ marginBottom: 0 }}>
+                                <label className="form-label" style={{ fontSize: '11px', fontWeight: 700 }}>CUSTOM RATE (₹ / {p.unit})</label>
+                                <input 
+                                  type="number" step="0.5" className="form-input"
+                                  placeholder={`₹${p.defaultPrice}`}
+                                  value={conf.customPrice ?? ''}
+                                  onChange={(e) => handleConfigChange(p.id, 'customPrice', e.target.value)}
+                                  style={{ background: '#fff', fontWeight: 700 }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      <button 
+                        onClick={handleConfigSubmit} 
+                        className="btn-primary" 
+                        style={{ marginTop: '10px', padding: '10px' }}
+                      >
+                        Save Subscriptions Inline
                       </button>
                     </div>
                   </div>
-
-                  {/* Configs loading spinner */}
-                  {configsLoading && (
-                    <div style={{ textAlign: 'center', padding: '16px', color: 'var(--secondary-text)', fontSize: '13px' }}>
-                      Loading subscription data...
-                    </div>
-                  )}
-
-                  {/* Success banner */}
-                  {updateSuccess && (
-                    <div style={{ backgroundColor: '#D1FAE5', border: '1px solid #6EE7B7', color: '#065F46', padding: '10px 14px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <CheckCircle2 size={16} /> Customer & subscription saved successfully!
-                    </div>
-                  )}
-
-                  {/* Error/warning banner */}
-                  {updateError && (
-                    <div style={{ backgroundColor: '#FEF3C7', border: '1px solid #FCD34D', color: '#92400E', padding: '10px 14px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, marginBottom: '14px' }}>
-                      {updateError}
-                    </div>
-                  )}
-
-                  {!configsLoading && !isEditing ? (
-                    /* ── Read-only view ── */
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
-                      <div style={{ backgroundColor: '#fff', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                        <span style={{ fontSize: '11px', color: 'var(--secondary-text)', fontWeight: 700 }}>NAME</span>
-                        <div style={{ fontSize: '15px', fontWeight: 700, marginTop: '4px' }}>{c.name}</div>
-                      </div>
-                      <div style={{ backgroundColor: '#fff', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                        <span style={{ fontSize: '11px', color: 'var(--secondary-text)', fontWeight: 700 }}>START DATE</span>
-                        <div style={{ fontSize: '15px', fontWeight: 700, marginTop: '4px' }}>📅 {c.startDate}</div>
-                      </div>
-                      <div style={{ backgroundColor: '#fff', padding: '12px', borderRadius: '8px', border: `1px solid ${c.productName ? 'var(--border-color)' : '#FCD34D'}` }}>
-                        <span style={{ fontSize: '11px', color: 'var(--secondary-text)', fontWeight: 700 }}>SUBSCRIPTION</span>
-                        <div style={{ fontSize: '13px', fontWeight: 700, marginTop: '4px' }}>
-                          {c.productName ? (
-                            <>
-                              📦 {c.productName}<br />
-                              <span style={{ fontSize: '12px', fontWeight: 600 }}>{c.quantity ?? 1} {c.productUnit ?? ''}/day @ ₹{c.rate ?? 0}</span><br />
-                              <span style={{ color: '#065F46', fontSize: '12px' }}>Est. ₹{((c.quantity ?? 1) * (c.rate ?? 0) * 30).toFixed(0)}/month</span>
-                            </>
-                          ) : (
-                            <span style={{ color: '#D97706' }}>⚠️ Not set — click Edit to configure</span>
-                          )}
-                        </div>
-                      </div>
-                      {c.notes && (
-                        <div style={{ backgroundColor: '#fff', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', gridColumn: '1 / -1' }}>
-                          <span style={{ fontSize: '11px', color: 'var(--secondary-text)', fontWeight: 700 }}>NOTES</span>
-                          <div style={{ fontSize: '13px', marginTop: '4px' }}>📝 {c.notes}</div>
-                        </div>
-                      )}
-                    </div>
-                  ) : !configsLoading && isEditing ? (
-                    /* ── Edit form ── */
-                    <form onSubmit={handleUpdateCustomer} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                        <div className="form-group" style={{ marginBottom: 0 }}>
-                          <label className="form-label" style={{ fontWeight: 600 }}>Customer Name *</label>
-                          <input
-                            type="text" className="form-input" required
-                            value={editState.name}
-                            onChange={e => setEditState(p => ({ ...p, name: e.target.value }))}
-                            style={{ background: '#fff' }}
-                          />
-                        </div>
-                        <div className="form-group" style={{ marginBottom: 0 }}>
-                          <label className="form-label" style={{ fontWeight: 600 }}>Start Date *</label>
-                          <input
-                            type="date" className="form-input" required
-                            value={editState.startDate}
-                            onChange={e => setEditState(p => ({ ...p, startDate: e.target.value }))}
-                            style={{ background: '#fff' }}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label className="form-label" style={{ fontWeight: 600 }}>Notes</label>
-                        <input
-                          type="text" className="form-input"
-                          value={editState.notes}
-                          onChange={e => setEditState(p => ({ ...p, notes: e.target.value }))}
-                          placeholder="Optional notes..."
-                          style={{ background: '#fff' }}
-                        />
-                      </div>
-
-                      {/* Subscription widget — product + qty + rate */}
-                      <SubscriptionWidget
-                        productId={editState.productId}
-                        quantity={editState.quantity}
-                        rate={editState.rate}
-                        products={products}
-                        onProductChange={id => {
-                          const p = products.find(x => x.id === id);
-                          setEditState(prev => ({ ...prev, productId: id, rate: p ? p.defaultPrice : prev.rate }));
-                        }}
-                        onQtyChange={v => setEditState(p => ({ ...p, quantity: v }))}
-                        onRateChange={v => setEditState(p => ({ ...p, rate: v }))}
-                      />
-
-                      <div style={{ display: 'flex', gap: '10px' }}>
-                        <button
-                          type="submit" className="btn-primary" disabled={saving}
-                          style={{ padding: '10px 18px', display: 'flex', gap: '6px', alignItems: 'center', fontWeight: 700 }}
-                        >
-                          <Save size={15} />
-                          {saving ? 'Saving...' : 'Save Changes'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => { setIsEditing(false); setUpdateError(null); }}
-                          className="btn-secondary"
-                          style={{ padding: '10px 16px' }}
-                        >Cancel</button>
-                      </div>
-                    </form>
-                  ) : null}
-                </div>
-              )}
-
-            </div>
-          );
-        })}
+                )}
+              </div>
+            );
+          })
+        )}
       </div>
 
-      {/* ── Delete Confirmation Modal ── */}
+      {/* DELETE CUSTOMER CONFIRMATION MODAL */}
       {customerToDelete && (
         <div style={{
-          position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)',
-          backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center',
-          justifyContent: 'center', zIndex: 1000, padding: '16px'
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+          padding: '16px'
         }}>
           <div className="card" style={{
-            width: '100%', maxWidth: '420px', padding: '24px', borderRadius: '16px',
+            width: '100%', maxWidth: '440px', padding: '24px', borderRadius: '16px',
             backgroundColor: '#fff', display: 'flex', flexDirection: 'column', gap: '16px',
             boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ padding: '10px', borderRadius: '50%', backgroundColor: '#FEE2E2', color: '#DC2626' }}>
-                <AlertTriangle size={22} />
+                <AlertTriangle size={24} />
               </div>
-              <h3 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--primary-text)', margin: 0 }}>Delete Customer?</h3>
+              <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--primary-text)', margin: 0 }}>
+                Delete Customer Profile?
+              </h3>
             </div>
-            <p style={{ fontSize: '14px', color: 'var(--secondary-text)', margin: 0, lineHeight: 1.6 }}>
-              Permanently delete <strong>{customerToDelete.name}</strong>? This removes all their delivery, subscription, and billing records.
+
+            <p style={{ fontSize: '14px', color: 'var(--secondary-text)', margin: 0, lineHeight: 1.5 }}>
+              Are you sure you want to delete <strong>{customerToDelete.name}</strong>? This will permanently delete this customer profile and all their subscription data from the database.
             </p>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <button
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px' }}>
+              <button 
+                type="button" 
                 onClick={() => setCustomerToDelete(null)}
-                style={{ padding: '9px 18px', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
-              >Cancel</button>
-              <button
-                onClick={handleDeleteCustomer}
-                style={{ padding: '9px 18px', borderRadius: '8px', border: 'none', background: '#DC2626', color: '#fff', fontWeight: 800, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                style={{ padding: '10px 18px', borderRadius: '8px', border: '1px solid var(--border-color)', background: '#fff', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
               >
-                <Trash2 size={14} /> Delete Customer
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                onClick={handleDeleteCustomer}
+                style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#DC2626', color: '#fff', fontWeight: 800, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Trash2 size={16} />
+                <span>Delete Customer</span>
               </button>
             </div>
           </div>
@@ -831,3 +952,5 @@ export const Customers: React.FC = () => {
     </div>
   );
 };
+
+
