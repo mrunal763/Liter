@@ -970,11 +970,18 @@ export const Deliveries: React.FC = () => {
 
             {/* Products Table */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary-text)' }}>Scheduled Products Breakdown:</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary-text)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Scheduled Products Breakdown:</span>
+                <span style={{ fontSize: '12px', color: 'var(--primary-green)', fontWeight: 700 }}>
+                  Est. Daily Total: ₹{adjustItems.reduce((sum, it) => sum + (it.quantity * (it.appliedPrice ?? 0)), 0).toFixed(2)}
+                </span>
+              </div>
               
               {adjustItems.map(item => {
                 const diffVal = item.quantity - item.defaultQuantity;
                 const isOver = diffVal !== 0;
+                const price = item.appliedPrice ?? 0;
+                const lineTotal = item.quantity * price;
 
                 return (
                   <div key={item.productId} style={{
@@ -982,11 +989,43 @@ export const Deliveries: React.FC = () => {
                     backgroundColor: 'var(--bg-card-subtle, #f9fafb)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px'
                   }}>
                     <div>
-                      <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--primary-text)' }}>
-                        {item.productName}
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--primary-text)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span>{item.productName}</span>
+                        <span style={{
+                          fontSize: '12px', fontWeight: 800, color: 'var(--primary-green)',
+                          backgroundColor: '#D1FAE5', padding: '2px 8px', borderRadius: '6px',
+                          border: '1px solid #A7F3D0'
+                        }}>
+                          Price: ₹{price.toFixed(2)} / {item.unit}
+                        </span>
                       </div>
-                      <div style={{ fontSize: '12px', color: 'var(--secondary-text)', marginTop: '2px' }}>
-                        Regular Plan: <strong>{item.defaultQuantity} {item.unit}</strong>
+                      <div style={{ fontSize: '12px', color: 'var(--secondary-text)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                        <span>Regular Plan: <strong>{item.defaultQuantity} {item.unit}</strong></span>
+                        <span>&bull;</span>
+                        <span style={{ color: 'var(--primary-text)', fontWeight: 600 }}>
+                          Subtotal: <strong>₹{lineTotal.toFixed(2)}</strong>
+                        </span>
+                      </div>
+
+                      {/* QUICK QUANTITY PRESETS (0.25, 0.5, 0.75, 1, 1.5, 2, 3) */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '8px', paddingTop: '6px', borderTop: '1px dashed var(--border-color)' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--secondary-text)' }}>Quick Qty:</span>
+                        {[0, 0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0].map(q => (
+                          <button
+                            key={q}
+                            type="button"
+                            onClick={() => handleAdjustItemQtyChange(item.productId, q)}
+                            style={{
+                              padding: '3px 8px', borderRadius: '6px',
+                              border: item.quantity === q ? '1px solid var(--primary-green)' : '1px solid var(--border-color)',
+                              backgroundColor: item.quantity === q ? 'var(--primary-green)' : '#fff',
+                              color: item.quantity === q ? '#fff' : 'var(--primary-text)',
+                              fontSize: '11px', fontWeight: 700, cursor: 'pointer'
+                            }}
+                          >
+                            {q === 0 ? '0 (Skip)' : `${q} ${item.unit}`}
+                          </button>
+                        ))}
                       </div>
                     </div>
 
@@ -1158,8 +1197,8 @@ export const Deliveries: React.FC = () => {
                 </div>
 
                 <div style={{ padding: '8px', borderRadius: '8px', backgroundColor: 'rgba(59, 130, 246, 0.1)', textAlign: 'center' }}>
-                  <div style={{ fontSize: '10px', color: '#1e40af', fontWeight: 800 }}>TOTAL VOL</div>
-                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#1e40af' }}>{historyData.totalMonthVolume} Qty</div>
+                  <div style={{ fontSize: '10px', color: '#1e40af', fontWeight: 800 }}>TOTAL QUANTITY</div>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#1e40af' }}>🥛 {historyData.totalMonthVolume} L</div>
                 </div>
               </div>
             )}
@@ -1200,7 +1239,7 @@ export const Deliveries: React.FC = () => {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px' }}>
                       {/* Blank offset cells */}
                       {Array.from({ length: firstDayIdx }).map((_, i) => (
-                        <div key={`offset-${i}`} style={{ padding: '10px', height: '44px' }} />
+                        <div key={`offset-${i}`} style={{ padding: '10px', height: '48px' }} />
                       ))}
 
                       {/* Days 1 to N */}
@@ -1229,14 +1268,18 @@ export const Deliveries: React.FC = () => {
                             key={dayNum}
                             onClick={() => setSelectedCalendarDay(rec || { date: `${historyYear}-${String(historyMonth).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`, status: 'NO_RECORD', items: [] })}
                             style={{
-                              height: '44px', borderRadius: '8px', border: `1px solid ${borderColor}`,
+                              height: '48px', borderRadius: '8px', border: `1px solid ${borderColor}`,
                               backgroundColor: bgColor, color: textColor, cursor: 'pointer',
                               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                               fontWeight: 800, fontSize: '12px', transition: 'all 0.15s'
                             }}
                           >
                             <span>{dayNum}</span>
-                            {rec && rec.dayVolume > 0 && <span style={{ fontSize: '9px' }}>{rec.dayVolume} Qty</span>}
+                            {rec && rec.dayVolume > 0 ? (
+                              <span style={{ fontSize: '9px', fontWeight: 800, marginTop: '2px' }}>🥛 {rec.dayVolume} L</span>
+                            ) : rec && isAbs ? (
+                              <span style={{ fontSize: '9px', fontWeight: 700, marginTop: '2px', color: '#991B1B' }}>0 L</span>
+                            ) : null}
                           </div>
                         );
                       })}

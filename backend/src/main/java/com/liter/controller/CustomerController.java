@@ -63,6 +63,19 @@ public class CustomerController {
         return userRepository.findByUsername(principal.getName()).orElse(null);
     }
 
+    private boolean isMilkProduct(Product p) {
+        if (p == null || p.getName() == null) return false;
+        String name = p.getName().toLowerCase();
+        String category = p.getCategory() != null ? p.getCategory().toLowerCase() : "";
+        if (name.contains("milk") || category.contains("milk")) {
+            return true;
+        }
+        if (name.contains("ghee") || name.contains("paneer") || name.contains("curd") || name.contains("butter") || name.contains("cheese") || name.contains("shrikhand") || name.contains("sweets")) {
+            return false;
+        }
+        return true;
+    }
+
     @GetMapping
     public ResponseEntity<List<CustomerSummaryDto>> getAllCustomers(Principal principal) {
         User currentUser = getCurrentUser(principal);
@@ -75,18 +88,37 @@ public class CustomerController {
             CustomerSummaryDto dto = new CustomerSummaryDto();
             dto.setId(c.getId());
             dto.setName(c.getName());
+            dto.setMobileNumber(c.getMobileNumber());
+            dto.setAddress(c.getAddress());
             dto.setStartDate(c.getStartDate());
             dto.setNotes(c.getNotes());
             dto.setCreatedAt(c.getCreatedAt());
-            // Enrich with primary active subscription
+            // Enrich with all active milk subscriptions
             List<CustomerProductConfig> configs = customerProductConfigRepository.findByCustomerIdAndActive(c.getId(), true);
-            if (!configs.isEmpty()) {
-                CustomerProductConfig primary = configs.get(0);
-                dto.setProductId(primary.getProduct().getId());
-                dto.setProductName(primary.getProduct().getName());
-                dto.setProductUnit(primary.getProduct().getUnit());
-                dto.setQuantity(primary.getDefaultQuantity());
-                dto.setRate(primary.getCustomPrice() != null ? primary.getCustomPrice() : primary.getProduct().getDefaultPrice());
+            List<com.liter.dto.CustomerSubscriptionDto> subList = new ArrayList<>();
+
+            for (CustomerProductConfig cfg : configs) {
+                if (cfg.getProduct() != null && isMilkProduct(cfg.getProduct()) && cfg.getDefaultQuantity() != null && cfg.getDefaultQuantity().compareTo(BigDecimal.ZERO) > 0) {
+                    BigDecimal price = cfg.getCustomPrice() != null ? cfg.getCustomPrice() : cfg.getProduct().getDefaultPrice();
+                    subList.add(new com.liter.dto.CustomerSubscriptionDto(
+                            cfg.getProduct().getId(),
+                            cfg.getProduct().getName(),
+                            cfg.getProduct().getUnit(),
+                            cfg.getDefaultQuantity(),
+                            price
+                    ));
+                }
+            }
+
+            dto.setSubscriptions(subList);
+
+            if (!subList.isEmpty()) {
+                com.liter.dto.CustomerSubscriptionDto primary = subList.get(0);
+                dto.setProductId(primary.getProductId());
+                dto.setProductName(primary.getProductName());
+                dto.setProductUnit(primary.getProductUnit());
+                dto.setQuantity(primary.getQuantity());
+                dto.setRate(primary.getRate());
             }
             result.add(dto);
         }
@@ -114,34 +146,36 @@ public class CustomerController {
         }
         Customer saved = customerRepository.save(customer);
 
-        // Only create a product config if the customer explicitly selected a product
+        // Auto-create default product config so customer appears immediately on delivery sheet
         try {
             Long prodId = customer.getProductId();
-            if (prodId != null && prodId > 0) {
-                Product product = productRepository.findById(prodId).orElse(null);
-                if (product != null) {
-                    BigDecimal qty = customer.getQuantity() != null && customer.getQuantity().compareTo(BigDecimal.ZERO) > 0
-                            ? customer.getQuantity() : BigDecimal.ONE;
-                    BigDecimal rate = customer.getRate() != null && customer.getRate().compareTo(BigDecimal.ZERO) > 0
-                            ? customer.getRate() : product.getDefaultPrice();
+            Product product = null;
+            if (prodId != null) {
+                product = productRepository.findById(prodId).orElse(null);
+            }
+            if (product == null) {
+                List<Product> activeProds = productRepository.findByActive(true);
+                product = activeProds.stream()
+                        .filter(this::isMilkProduct)
+                        .findFirst()
+                        .orElse(!activeProds.isEmpty() ? activeProds.get(0) : null);
+            }
 
-                    // Upsert: avoid duplicate if config already exists
-                    CustomerProductConfig config = customerProductConfigRepository
-                            .findByCustomerIdAndProductId(saved.getId(), prodId)
-                            .orElseGet(() -> {
-                                CustomerProductConfig c = new CustomerProductConfig();
-                                c.setCustomer(saved);
-                                c.setProduct(product);
-                                return c;
-                            });
-                    config.setDefaultQuantity(qty);
-                    config.setCustomPrice(rate);
-                    config.setActive(true);
-                    customerProductConfigRepository.save(config);
-                }
+            if (product != null) {
+                BigDecimal qty = customer.getQuantity() != null && customer.getQuantity().compareTo(BigDecimal.ZERO) > 0 
+                        ? customer.getQuantity() : new BigDecimal("1.00");
+                BigDecimal rate = customer.getRate() != null ? customer.getRate() : product.getDefaultPrice();
+
+                CustomerProductConfig config = new CustomerProductConfig();
+                config.setCustomer(saved);
+                config.setProduct(product);
+                config.setDefaultQuantity(qty);
+                config.setCustomPrice(rate);
+                config.setActive(true);
+                customerProductConfigRepository.save(config);
             }
         } catch (Exception ex) {
-            // Non-fatal: subscription can be set later via the Setup panel
+            // Ignore if config creation notice
         }
 
         return ResponseEntity.ok(saved);
@@ -227,9 +261,15 @@ public class CustomerController {
 
         List<CustomerProductConfig> configs = customerProductConfigRepository.findByCustomerId(id);
         List<Product> allActiveProducts = productRepository.findByActive(true);
+        List<Product> milkProducts = allActiveProducts.stream()
+                .filter(this::isMilkProduct)
+                .collect(java.util.stream.Collectors.toList());
+        if (milkProducts.isEmpty()) {
+            milkProducts = allActiveProducts;
+        }
         List<CustomerConfigDto> dtoList = new ArrayList<>();
 
-        for (Product product : allActiveProducts) {
+        for (Product product : milkProducts) {
             CustomerProductConfig match = configs.stream()
                     .filter(c -> c.getProduct().getId().equals(product.getId()))
                     .findFirst()

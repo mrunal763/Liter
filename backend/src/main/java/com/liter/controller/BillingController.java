@@ -83,15 +83,44 @@ public class BillingController {
     @GetMapping("/history")
     public ResponseEntity<List<Bill>> getBillingHistory(
             @RequestParam(required = false) String start,
-            @RequestParam(required = false) String end) {
+            @RequestParam(required = false) String end,
+            @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) String status,
+            java.security.Principal principal) {
+
+        User currentUser = getCurrentUser(principal);
+        List<Bill> bills;
 
         if (start != null && end != null) {
             LocalDate startDate = LocalDate.parse(start);
             LocalDate endDate = LocalDate.parse(end);
-            return ResponseEntity.ok(billRepository.findByBillPeriodStartGreaterThanEqualAndBillPeriodEndLessThanEqual(startDate, endDate));
+            bills = billRepository.findByBillPeriodStartGreaterThanEqualAndBillPeriodEndLessThanEqual(startDate, endDate);
+        } else {
+            bills = billRepository.findAll();
         }
 
-        return ResponseEntity.ok(billRepository.findAll());
+        // Enforce Multi-tenant Ownership
+        if (currentUser != null) {
+            bills = bills.stream()
+                    .filter(b -> b.getCustomer() != null && b.getCustomer().getUser() != null && b.getCustomer().getUser().getId().equals(currentUser.getId()))
+                    .collect(java.util.stream.Collectors.toList());
+        }
+
+        // Apply customerId filter if specified
+        if (customerId != null) {
+            bills = bills.stream()
+                    .filter(b -> b.getCustomer() != null && b.getCustomer().getId().equals(customerId))
+                    .collect(java.util.stream.Collectors.toList());
+        }
+
+        // Apply status filter if specified
+        if (status != null && !status.trim().isEmpty() && !"ALL".equalsIgnoreCase(status)) {
+            bills = bills.stream()
+                    .filter(b -> status.equalsIgnoreCase(b.getStatus()))
+                    .collect(java.util.stream.Collectors.toList());
+        }
+
+        return ResponseEntity.ok(bills);
     }
 
     @GetMapping("/{id}")
@@ -107,5 +136,21 @@ public class BillingController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(billItemRepository.findByBillId(id));
+    }
+
+    @GetMapping("/{id}/daywise")
+    public ResponseEntity<List<com.liter.model.DeliveryTransaction>> getBillDaywiseTransactions(@PathVariable Long id) {
+        Bill bill = billRepository.findById(id).orElse(null);
+        if (bill == null) {
+            return ResponseEntity.notFound().build();
+        }
+        List<com.liter.model.DeliveryTransaction> transactions = deliveryTransactionRepository
+                .findByCustomerIdAndDeliveryDateBetweenAndStatus(
+                        bill.getCustomer().getId(),
+                        bill.getBillPeriodStart(),
+                        bill.getBillPeriodEnd(),
+                        "DELIVERED"
+                );
+        return ResponseEntity.ok(transactions);
     }
 }
