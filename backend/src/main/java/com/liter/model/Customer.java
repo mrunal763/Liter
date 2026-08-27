@@ -69,11 +69,14 @@ public class Customer {
 
     @PrePersist
     protected void onCreate() {
+        if (startDate == null) {
+            startDate = LocalDate.now(java.time.ZoneId.of("Asia/Kolkata"));
+        }
         if (createdAt == null) {
-            createdAt = LocalDateTime.now();
+            createdAt = LocalDateTime.now(java.time.ZoneId.of("Asia/Kolkata"));
         }
         if (updatedAt == null) {
-            updatedAt = LocalDateTime.now();
+            updatedAt = LocalDateTime.now(java.time.ZoneId.of("Asia/Kolkata"));
         }
     }
 

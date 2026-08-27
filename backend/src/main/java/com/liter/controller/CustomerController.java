@@ -142,7 +142,7 @@ public class CustomerController {
         }
 
         if (customer.getStartDate() == null) {
-            customer.setStartDate(LocalDate.now());
+            customer.setStartDate(LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")));
         }
         Customer saved = customerRepository.save(customer);
 

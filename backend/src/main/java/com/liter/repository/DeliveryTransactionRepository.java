@@ -10,6 +10,7 @@ public interface DeliveryTransactionRepository extends JpaRepository<DeliveryTra
     List<DeliveryTransaction> findByDeliveryDateAndSession(LocalDate deliveryDate, String session);
     List<DeliveryTransaction> findByCustomerIdAndDeliveryDateBetweenAndStatus(Long customerId, LocalDate start, LocalDate end, String status);
     List<DeliveryTransaction> findByCustomerIdAndDeliveryDateBetween(Long customerId, LocalDate start, LocalDate end);
+    List<DeliveryTransaction> findByCustomerIdAndDeliveryDate(Long customerId, LocalDate deliveryDate);
     Optional<DeliveryTransaction> findByCustomerIdAndProductIdAndDeliveryDateAndSession(Long customerId, Long productId, LocalDate deliveryDate, String session);
     Optional<DeliveryTransaction> findByCustomerIdAndProductIdAndDeliveryDate(Long customerId, Long productId, LocalDate deliveryDate);
     List<DeliveryTransaction> findByDeliveryDate(LocalDate date);

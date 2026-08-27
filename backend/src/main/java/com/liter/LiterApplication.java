@@ -11,6 +11,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @SpringBootApplication
 public class LiterApplication {
 
+    @jakarta.annotation.PostConstruct
+    public void initTimezone() {
+        java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("Asia/Kolkata"));
+        System.out.println(">>> LITER System Timezone set to IST (Asia/Kolkata): " + java.time.LocalDateTime.now(java.time.ZoneId.of("Asia/Kolkata")));
+    }
+
     public static void main(String[] args) {
         SpringApplication.run(LiterApplication.class, args);
     }

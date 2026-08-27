@@ -42,8 +42,9 @@ public class DatabaseSchemaMigrator {
             jdbcTemplate.execute("ALTER TABLE customer_product_configs ADD COLUMN IF NOT EXISTS default_quantity NUMERIC(10,2) DEFAULT 0.00;");
             jdbcTemplate.execute("UPDATE customer_product_configs SET default_quantity = COALESCE(default_qty_morning, 0) + COALESCE(default_qty_evening, 0) WHERE default_quantity = 0 OR default_quantity IS NULL;");
             jdbcTemplate.execute("UPDATE customer_product_configs SET default_quantity = 1.00 WHERE default_quantity = 0 OR default_quantity IS NULL;");
-            // Ensure all customers have a valid user_id owner assigned
+            // Ensure all customers have a valid user_id owner assigned and valid start_date
             jdbcTemplate.execute("UPDATE customers SET user_id = (SELECT id FROM users ORDER BY id LIMIT 1) WHERE user_id IS NULL;");
+            jdbcTemplate.execute("UPDATE customers SET start_date = created_at::date WHERE start_date IS NULL OR start_date < created_at::date;");
             // Auto-create product config for any active customer that missing configs
             jdbcTemplate.execute("INSERT INTO customer_product_configs (customer_id, product_id, default_quantity, custom_price, active, updated_at) SELECT c.id, (SELECT id FROM products WHERE active = true ORDER BY id LIMIT 1), 1.00, 65.00, true, NOW() FROM customers c WHERE c.status = 'ACTIVE' AND c.id NOT IN (SELECT customer_id FROM customer_product_configs);");
             // Deduplicate delivery transactions per customer, product, date before normalizing session

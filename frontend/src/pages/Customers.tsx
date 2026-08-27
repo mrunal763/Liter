@@ -16,8 +16,6 @@ interface CustomerSubscription {
 interface Customer {
   id?: number;
   name: string;
-  mobileNumber: string;
-  address: string;
   startDate: string;
   subscriptions?: CustomerSubscription[];
   productId?: number;
@@ -59,8 +57,6 @@ export const Customers: React.FC = () => {
   // Edit Customer Form State
   const [editCust, setEditCust] = useState<Customer>({
     name: '',
-    mobileNumber: '',
-    address: '',
     startDate: '',
     quantity: 1.0,
     rate: 65.00
@@ -68,11 +64,9 @@ export const Customers: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(false);
   
-  // New Customer Form State (Name, Phone, Address, Start Date, Product, Daily Quantity, Rate)
+  // New Customer Form State (Name, Start Date, Product, Daily Quantity, Rate)
   const [newCust, setNewCust] = useState({
     name: '',
-    mobileNumber: '',
-    address: '',
     startDate: new Date().toISOString().split('T')[0],
     productId: 1,
     quantity: 1.0,
@@ -160,16 +154,6 @@ export const Customers: React.FC = () => {
       return;
     }
 
-    if (!newCust.mobileNumber.trim()) {
-      setError('Mobile Phone Number is required.');
-      return;
-    }
-
-    if (!newCust.address.trim()) {
-      setError('Address is required.');
-      return;
-    }
-
     // 1. UNIQUE NAME CHECK (case-insensitive)
     const exists = customers.some(c => c.name.trim().toLowerCase() === trimmedName.toLowerCase());
     if (exists) {
@@ -178,12 +162,9 @@ export const Customers: React.FC = () => {
     }
 
     const selectedProd = products.find(p => p.id === newCust.productId);
-    const todayStr = new Date().toISOString().split('T')[0];
 
     const customerPayload = {
       name: trimmedName,
-      mobileNumber: newCust.mobileNumber.trim(),
-      address: newCust.address.trim(),
       startDate: newCust.startDate,
       status: 'ACTIVE',
       productId: newCust.productId,
@@ -255,11 +236,6 @@ export const Customers: React.FC = () => {
       return;
     }
 
-    if (!editCust.mobileNumber.trim()) {
-      setError('Phone Number is required.');
-      return;
-    }
-
     // Check unique name if name changed
     const nameChanged = selectedCustomer && selectedCustomer.name.trim().toLowerCase() !== editCust.name.trim().toLowerCase();
     if (nameChanged) {
@@ -327,8 +303,6 @@ export const Customers: React.FC = () => {
   const resetForm = () => {
     setNewCust({
       name: '',
-      mobileNumber: '',
-      address: '',
       startDate: new Date().toISOString().split('T')[0],
       productId: products[0]?.id || 1,
       quantity: 1.0,
@@ -442,34 +416,12 @@ export const Customers: React.FC = () => {
           )}
 
           <form onSubmit={handleAddSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label" style={{ fontWeight: 600 }}>Customer Unique Name *</label>
-                <input 
-                  type="text" className="form-input" required
-                  value={newCust.name} onChange={(e) => setNewCust({ ...newCust, name: e.target.value })}
-                  placeholder="e.g. Ramesh Patil (must be unique)"
-                  style={{ background: '#fff' }}
-                />
-              </div>
-
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label" style={{ fontWeight: 600 }}>Phone Number *</label>
-                <input 
-                  type="tel" className="form-input" required
-                  value={newCust.mobileNumber} onChange={(e) => setNewCust({ ...newCust, mobileNumber: e.target.value })}
-                  placeholder="10-digit mobile e.g. 9876543210"
-                  style={{ background: '#fff' }}
-                />
-              </div>
-            </div>
-
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label" style={{ fontWeight: 600 }}>Full Address *</label>
+              <label className="form-label" style={{ fontWeight: 600 }}>Customer Unique Name *</label>
               <input 
                 type="text" className="form-input" required
-                value={newCust.address} onChange={(e) => setNewCust({ ...newCust, address: e.target.value })}
-                placeholder="e.g. Plot 4, Lane 2, Krishna Nagar, Pune"
+                value={newCust.name} onChange={(e) => setNewCust({ ...newCust, name: e.target.value })}
+                placeholder="e.g. Ramesh Patil (must be unique)"
                 style={{ background: '#fff' }}
               />
             </div>
@@ -572,8 +524,8 @@ export const Customers: React.FC = () => {
                   </div>
 
                   {/* 1-Click Quick Quantity Steppers */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', paddingTop: '4px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--secondary-text)' }}>Quick Daily Presets:</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', paddingTop: '6px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--secondary-text)' }}>Quick Daily Presets:</span>
                     {[0.5, 1.0, 1.5, 2.0, 3.0].map(q => (
                       <button
                         key={q}
@@ -646,18 +598,6 @@ export const Customers: React.FC = () => {
                         <span style={{ fontSize: '11px', color: 'var(--primary-green)', backgroundColor: 'var(--light-green)', padding: '2px 8px', borderRadius: '12px', fontWeight: 600 }}>
                           Since: {c.startDate}
                         </span>
-                      </div>
-                      
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '13px', color: 'var(--secondary-text)', marginTop: '4px', flexWrap: 'wrap' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <Phone size={13} style={{ color: 'var(--primary-green)' }} />
-                          <span style={{ fontWeight: 600 }}>{c.mobileNumber || 'No phone'}</span>
-                        </div>
-                        
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <MapPin size={13} style={{ color: 'var(--primary-green)' }} />
-                          <span>{c.address || 'No address'}</span>
-                        </div>
                       </div>
 
                       {c.subscriptions && c.subscriptions.length > 0 ? (
@@ -762,65 +702,32 @@ export const Customers: React.FC = () => {
                     {!isEditing ? (
                       /* Read-Only Inline Card */
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                          <div style={{ backgroundColor: '#fff', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                            <span style={{ fontSize: '11px', color: 'var(--secondary-text)', fontWeight: 600 }}>CUSTOMER NAME & PHONE</span>
-                            <div style={{ fontSize: '15px', fontWeight: 700, marginTop: '2px' }}>{c.name}</div>
-                            <div style={{ fontSize: '13px', color: 'var(--primary-green)', fontWeight: 600, marginTop: '2px' }}>📞 {c.mobileNumber}</div>
-                          </div>
-
-                          <div style={{ backgroundColor: '#fff', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                            <span style={{ fontSize: '11px', color: 'var(--secondary-text)', fontWeight: 600 }}>SUBSCRIPTIONS & START DATE</span>
-                            {c.subscriptions && c.subscriptions.length > 0 ? (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
-                                {c.subscriptions.map((sub, sIdx) => (
-                                  <div key={sIdx} style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary-green)' }}>
-                                    🥛 {sub.productName}: {sub.quantity} {sub.productUnit || ''}/day @ ₹{sub.rate}
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <div style={{ fontSize: '13px', fontWeight: 700, marginTop: '4px' }}>
-                                {c.productName ? `📦 ${c.productName}: ${c.quantity ?? 1} ${c.productUnit ?? ''}/day @ ₹${c.rate ?? 65}` : '📦 No subscription set'}
-                              </div>
-                            )}
-                            <div style={{ fontSize: '12px', color: 'var(--secondary-text)', marginTop: '4px' }}>Customer Since: {c.startDate}</div>
-                          </div>
-                        </div>
-
                         <div style={{ backgroundColor: '#fff', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                          <span style={{ fontSize: '11px', color: 'var(--secondary-text)', fontWeight: 600 }}>FULL ADDRESS</span>
-                          <div style={{ fontSize: '13px', marginTop: '2px', fontWeight: 500 }}>🏠 {c.address}</div>
+                          <span style={{ fontSize: '11px', color: 'var(--secondary-text)', fontWeight: 600 }}>SUBSCRIPTIONS & START DATE</span>
+                          {c.subscriptions && c.subscriptions.length > 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
+                              {c.subscriptions.map((sub, sIdx) => (
+                                <div key={sIdx} style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary-green)' }}>
+                                  🥛 {sub.productName}: {sub.quantity} {sub.productUnit || ''}/day @ ₹{sub.rate}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: '13px', fontWeight: 700, marginTop: '4px' }}>
+                              {c.productName ? `📦 ${c.productName}: ${c.quantity ?? 1} ${c.productUnit ?? ''}/day @ ₹${c.rate ?? 65}` : '📦 No subscription set'}
+                            </div>
+                          )}
+                          <div style={{ fontSize: '12px', color: 'var(--secondary-text)', marginTop: '4px' }}>Customer Since: {c.startDate}</div>
                         </div>
                       </div>
                     ) : (
                       /* Inline Edit Form */
                       <form onSubmit={handleUpdateCustomer} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                          <div className="form-group" style={{ marginBottom: 0 }}>
-                            <label className="form-label" style={{ fontWeight: 600 }}>Customer Name *</label>
-                            <input 
-                              type="text" className="form-input" required
-                              value={editCust.name} onChange={(e) => setEditCust({ ...editCust, name: e.target.value })}
-                              style={{ background: '#fff' }}
-                            />
-                          </div>
-
-                          <div className="form-group" style={{ marginBottom: 0 }}>
-                            <label className="form-label" style={{ fontWeight: 600 }}>Phone Number *</label>
-                            <input 
-                              type="tel" className="form-input" required
-                              value={editCust.mobileNumber} onChange={(e) => setEditCust({ ...editCust, mobileNumber: e.target.value })}
-                              style={{ background: '#fff' }}
-                            />
-                          </div>
-                        </div>
-
                         <div className="form-group" style={{ marginBottom: 0 }}>
-                          <label className="form-label" style={{ fontWeight: 600 }}>Full Address *</label>
+                          <label className="form-label" style={{ fontWeight: 600 }}>Customer Name *</label>
                           <input 
                             type="text" className="form-input" required
-                            value={editCust.address} onChange={(e) => setEditCust({ ...editCust, address: e.target.value })}
+                            value={editCust.name} onChange={(e) => setEditCust({ ...editCust, name: e.target.value })}
                             style={{ background: '#fff' }}
                           />
                         </div>
@@ -881,6 +788,27 @@ export const Customers: React.FC = () => {
                                   style={{ background: '#fff', fontWeight: 700 }}
                                 />
                               </div>
+                            </div>
+
+                            {/* Quick Daily Presets for Subscription Config */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
+                              <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--secondary-text)' }}>Quick Presets:</span>
+                              {[0.5, 1.0, 1.5, 2.0, 3.0].map(q => (
+                                <button
+                                  key={q}
+                                  type="button"
+                                  onClick={() => handleConfigChange(p.id, 'defaultQuantity', q.toString())}
+                                  style={{
+                                    padding: '3px 8px', borderRadius: '6px',
+                                    border: Number(conf.defaultQuantity) === q ? '1px solid var(--primary-green)' : '1px solid var(--border-color)',
+                                    backgroundColor: Number(conf.defaultQuantity) === q ? 'var(--primary-green)' : '#fff',
+                                    color: Number(conf.defaultQuantity) === q ? '#fff' : 'var(--primary-text)',
+                                    fontSize: '11px', fontWeight: 700, cursor: 'pointer'
+                                  }}
+                                >
+                                  {q} {p.unit}
+                                </button>
+                              ))}
                             </div>
                           </div>
                         );

@@ -50,11 +50,30 @@ public class DeliveryController {
         return userRepository.findByUsername(principal.getName()).orElse(null);
     }
 
+    private LocalDate getEffectiveStartDate(Customer customer) {
+        if (customer == null) return LocalDate.now(java.time.ZoneId.of("Asia/Kolkata"));
+        LocalDate start = customer.getStartDate();
+        LocalDate created = customer.getCreatedAt() != null ? customer.getCreatedAt().toLocalDate() : null;
+
+        if (start == null && created == null) return LocalDate.now(java.time.ZoneId.of("Asia/Kolkata"));
+        if (start == null) return created;
+        if (created == null) return start;
+        return start.isAfter(created) ? start : created;
+    }
+
     private List<Customer> getActiveCustomersForDate(User currentUser, LocalDate localDate) {
         if (currentUser == null) {
             return new ArrayList<>();
         }
-        return customerRepository.findByUserAndStartDateLessThanEqual(currentUser, localDate);
+        List<Customer> allCustomers = customerRepository.findByUser(currentUser);
+        List<Customer> active = new ArrayList<>();
+        for (Customer c : allCustomers) {
+            LocalDate effectiveStart = getEffectiveStartDate(c);
+            if (!localDate.isBefore(effectiveStart)) {
+                active.add(c);
+            }
+        }
+        return active;
     }
 
     @GetMapping("/sheet")
@@ -86,9 +105,10 @@ public class DeliveryController {
                     Optional<DeliveryTransaction> existingOpt = deliveryTransactionRepository
                             .findByCustomerIdAndProductIdAndDeliveryDate(customer.getId(), product.getId(), localDate);
 
+                    DeliverySheetItem item;
                     if (existingOpt.isPresent()) {
                         DeliveryTransaction transaction = existingOpt.get();
-                        sheet.add(new DeliverySheetItem(
+                        item = new DeliverySheetItem(
                                 customer.getId(),
                                 customer.getName(),
                                 product.getId(),
@@ -99,9 +119,9 @@ public class DeliveryController {
                                 transaction.getAppliedPrice(),
                                 transaction.getStatus(),
                                 transaction.getNotes()
-                        ));
+                        );
                     } else {
-                        sheet.add(new DeliverySheetItem(
+                        item = new DeliverySheetItem(
                                 customer.getId(),
                                 customer.getName(),
                                 product.getId(),
@@ -112,8 +132,10 @@ public class DeliveryController {
                                 price,
                                 "UNMARKED",
                                 ""
-                        ));
+                        );
                     }
+                    item.setCustomerStartDate(getEffectiveStartDate(customer).toString());
+                    sheet.add(item);
                 }
             } else {
                 for (CustomerProductConfig config : configs) {
@@ -129,9 +151,10 @@ public class DeliveryController {
                         defaultQty = BigDecimal.ZERO;
                     }
 
+                    DeliverySheetItem item;
                     if (existingOpt.isPresent()) {
                         DeliveryTransaction transaction = existingOpt.get();
-                        sheet.add(new DeliverySheetItem(
+                        item = new DeliverySheetItem(
                                 customer.getId(),
                                 customer.getName(),
                                 product.getId(),
@@ -142,13 +165,13 @@ public class DeliveryController {
                                 transaction.getAppliedPrice(),
                                 transaction.getStatus(),
                                 transaction.getNotes()
-                        ));
+                        );
                     } else {
                         BigDecimal price = config.getCustomPrice() != null 
                                 ? config.getCustomPrice() 
                                 : product.getDefaultPrice();
 
-                        sheet.add(new DeliverySheetItem(
+                        item = new DeliverySheetItem(
                                 customer.getId(),
                                 customer.getName(),
                                 product.getId(),
@@ -159,8 +182,10 @@ public class DeliveryController {
                                 price,
                                 "UNMARKED",
                                 ""
-                        ));
+                        );
                     }
+                    item.setCustomerStartDate(getEffectiveStartDate(customer).toString());
+                    sheet.add(item);
                 }
             }
         }
@@ -170,13 +195,17 @@ public class DeliveryController {
                 .findByDeliveryDate(localDate);
 
         for (DeliveryTransaction dt : allSaved) {
+            if (dt.getCustomer() != null && localDate.isBefore(getEffectiveStartDate(dt.getCustomer()))) {
+                continue; // Exclude saved transactions for dates prior to effective start date
+            }
+
             boolean alreadyAdded = sheet.stream().anyMatch(item ->
                 item.getCustomerId().equals(dt.getCustomer().getId()) &&
                 item.getProductId().equals(dt.getProduct().getId())
             );
 
             if (!alreadyAdded) {
-                sheet.add(new DeliverySheetItem(
+                DeliverySheetItem item = new DeliverySheetItem(
                         dt.getCustomer().getId(),
                         dt.getCustomer().getName(),
                         dt.getProduct().getId(),
@@ -187,7 +216,9 @@ public class DeliveryController {
                         dt.getAppliedPrice(),
                         dt.getStatus(),
                         dt.getNotes()
-                ));
+                );
+                item.setCustomerStartDate(dt.getCustomer().getStartDate() != null ? dt.getCustomer().getStartDate().toString() : null);
+                sheet.add(item);
             }
         }
 
@@ -397,6 +428,10 @@ public class DeliveryController {
 
             Customer customer = customerRepository.findById(customerId)
                     .orElseThrow(() -> new IllegalArgumentException("Customer not found: " + customerId));
+
+            if (customer.getStartDate() != null && date.isBefore(customer.getStartDate())) {
+                throw new IllegalArgumentException("Cannot mark delivery status for " + customer.getName() + " on " + date + " because customer was registered on " + customer.getStartDate());
+            }
             Product product = productRepository.findById(productId)
                     .orElseThrow(() -> new IllegalArgumentException("Product not found: " + productId));
 

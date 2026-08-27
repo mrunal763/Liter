@@ -17,6 +17,7 @@ public class DeliverySheetItem {
     private boolean isOverride;
     private String overrideDiff;
     private boolean isExtraProduct;
+    private String customerStartDate;
 
     public DeliverySheetItem() {
     }
@@ -157,5 +158,13 @@ public class DeliverySheetItem {
 
     public void setExtraProduct(boolean extraProduct) {
         isExtraProduct = extraProduct;
+    }
+
+    public String getCustomerStartDate() {
+        return customerStartDate;
+    }
+
+    public void setCustomerStartDate(String customerStartDate) {
+        this.customerStartDate = customerStartDate;
     }
 }
