@@ -78,8 +78,7 @@ public class BillingAndPaymentTests {
         config = new CustomerProductConfig();
         config.setCustomer(customer);
         config.setProduct(product);
-        config.setDefaultQtyMorning(new BigDecimal("1.00"));
-        config.setDefaultQtyEvening(BigDecimal.ZERO);
+        config.setDefaultQuantity(new BigDecimal("1.00"));
         config.setCustomPrice(new BigDecimal("55.00")); // Custom Price Override
         config.setActive(true);
         config = customerProductConfigRepository.save(config);

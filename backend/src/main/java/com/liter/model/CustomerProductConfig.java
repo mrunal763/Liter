@@ -23,11 +23,8 @@ public class CustomerProductConfig {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
-    @Column(name = "default_qty_morning", nullable = false, precision = 6, scale = 2)
-    private BigDecimal defaultQtyMorning = BigDecimal.ZERO;
-
-    @Column(name = "default_qty_evening", nullable = false, precision = 6, scale = 2)
-    private BigDecimal defaultQtyEvening = BigDecimal.ZERO;
+    @Column(name = "default_quantity", nullable = false, precision = 6, scale = 2)
+    private BigDecimal defaultQuantity = BigDecimal.ZERO;
 
     @Column(name = "custom_price", precision = 10, scale = 2)
     private BigDecimal customPrice; // Null represents using default product price
@@ -41,12 +38,11 @@ public class CustomerProductConfig {
     public CustomerProductConfig() {
     }
 
-    public CustomerProductConfig(Long id, Customer customer, Product product, BigDecimal defaultQtyMorning, BigDecimal defaultQtyEvening, BigDecimal customPrice, boolean active, LocalDateTime updatedAt) {
+    public CustomerProductConfig(Long id, Customer customer, Product product, BigDecimal defaultQuantity, BigDecimal customPrice, boolean active, LocalDateTime updatedAt) {
         this.id = id;
         this.customer = customer;
         this.product = product;
-        this.defaultQtyMorning = defaultQtyMorning;
-        this.defaultQtyEvening = defaultQtyEvening;
+        this.defaultQuantity = defaultQuantity;
         this.customPrice = customPrice;
         this.active = active;
         this.updatedAt = updatedAt;
@@ -83,20 +79,12 @@ public class CustomerProductConfig {
         this.product = product;
     }
 
-    public BigDecimal getDefaultQtyMorning() {
-        return defaultQtyMorning;
+    public BigDecimal getDefaultQuantity() {
+        return defaultQuantity;
     }
 
-    public void setDefaultQtyMorning(BigDecimal defaultQtyMorning) {
-        this.defaultQtyMorning = defaultQtyMorning;
-    }
-
-    public BigDecimal getDefaultQtyEvening() {
-        return defaultQtyEvening;
-    }
-
-    public void setDefaultQtyEvening(BigDecimal defaultQtyEvening) {
-        this.defaultQtyEvening = defaultQtyEvening;
+    public void setDefaultQuantity(BigDecimal defaultQuantity) {
+        this.defaultQuantity = defaultQuantity;
     }
 
     public BigDecimal getCustomPrice() {

@@ -989,7 +989,7 @@ export const Home: React.FC = () => {
               <h3 style={{ fontSize: '16px', fontWeight: 700 }}>Manage Daily Sales</h3>
             </div>
             <p style={{ fontSize: '13px', color: 'var(--secondary-text)', lineHeight: 1.5 }}>
-              Track daily milk deliveries, quantities, products, and customer transactions in morning/evening sessions.
+              Track daily milk deliveries, quantities, products, and customer attendance transactions.
             </p>
           </div>
 
@@ -1217,7 +1217,7 @@ export const Home: React.FC = () => {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#64748B' }}>
-                <span>Session: MORNING</span>
+                <span>Delivery Mode: Daily Attendance</span>
                 <span>Database: PostgreSQL</span>
               </div>
             </div>

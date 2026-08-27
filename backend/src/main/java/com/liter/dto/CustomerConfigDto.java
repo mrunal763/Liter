@@ -4,18 +4,16 @@ import java.math.BigDecimal;
 
 public class CustomerConfigDto {
     private Long productId;
-    private BigDecimal defaultQtyMorning;
-    private BigDecimal defaultQtyEvening;
+    private BigDecimal defaultQuantity;
     private BigDecimal customPrice; // Null represents no override
     private boolean active = true;
 
     public CustomerConfigDto() {
     }
 
-    public CustomerConfigDto(Long productId, BigDecimal defaultQtyMorning, BigDecimal defaultQtyEvening, BigDecimal customPrice, boolean active) {
+    public CustomerConfigDto(Long productId, BigDecimal defaultQuantity, BigDecimal customPrice, boolean active) {
         this.productId = productId;
-        this.defaultQtyMorning = defaultQtyMorning;
-        this.defaultQtyEvening = defaultQtyEvening;
+        this.defaultQuantity = defaultQuantity;
         this.customPrice = customPrice;
         this.active = active;
     }
@@ -29,20 +27,12 @@ public class CustomerConfigDto {
         this.productId = productId;
     }
 
-    public BigDecimal getDefaultQtyMorning() {
-        return defaultQtyMorning;
+    public BigDecimal getDefaultQuantity() {
+        return defaultQuantity;
     }
 
-    public void setDefaultQtyMorning(BigDecimal defaultQtyMorning) {
-        this.defaultQtyMorning = defaultQtyMorning;
-    }
-
-    public BigDecimal getDefaultQtyEvening() {
-        return defaultQtyEvening;
-    }
-
-    public void setDefaultQtyEvening(BigDecimal defaultQtyEvening) {
-        this.defaultQtyEvening = defaultQtyEvening;
+    public void setDefaultQuantity(BigDecimal defaultQuantity) {
+        this.defaultQuantity = defaultQuantity;
     }
 
     public BigDecimal getCustomPrice() {

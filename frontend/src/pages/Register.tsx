@@ -17,7 +17,6 @@ export const Register: React.FC = () => {
   const [email, setEmail] = useState('');
 
   const [businessName, setBusinessName] = useState('');
-  const [dairyType, setDairyType] = useState('Milk');
   const [location, setLocation] = useState('');
   const [dailyCapacity, setDailyCapacity] = useState('100-500 L/day');
 
@@ -391,35 +390,7 @@ export const Register: React.FC = () => {
               </div>
             </div>
 
-            {/* Dairy Type Selector */}
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', color: '#b2c7bc', marginBottom: '6px', fontWeight: 600 }}>
-                Primary Dairy Type / Livestock
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                {[
-                  { id: 'Milk', label: '🥛 Fresh Milk', sub: 'Pure Milk' },
-                  { id: 'Products', label: '🧈 Products', sub: 'Milk & Dairy' },
-                  { id: 'Farm', label: '🌿 Dairy Farm', sub: 'Local Dairy' }
-                ].map((type) => (
-                  <button
-                    key={type.id}
-                    type="button"
-                    onClick={() => setDairyType(type.id)}
-                    style={{
-                      padding: '10px 8px', borderRadius: '10px',
-                      border: dairyType === type.id ? '2px solid #4aba7e' : '1px solid rgba(255, 255, 255, 0.1)',
-                      background: dairyType === type.id ? 'rgba(74, 186, 126, 0.15)' : 'rgba(0, 0, 0, 0.2)',
-                      color: '#fff', textAlign: 'center', cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <div style={{ fontSize: '13px', fontWeight: 700 }}>{type.label}</div>
-                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', marginTop: '2px' }}>{type.sub}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
+
 
             <div>
               <label style={{ display: 'block', fontSize: '12px', color: '#b2c7bc', marginBottom: '6px', fontWeight: 600 }}>

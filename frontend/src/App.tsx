@@ -23,12 +23,6 @@ import { Settings } from './pages/Settings';
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const location = useLocation();
-
-  // Determine current session based on time (6 AM - 3 PM is morning, otherwise evening)
-  const currentHour = new Date().getHours();
-  const estimatedSession: 'MORNING' | 'EVENING' = (currentHour >= 6 && currentHour < 15) ? 'MORNING' : 'EVENING';
-
-  // Extract titles or settings if needed
   const isPublicPage = ['/', '/login', '/register'].includes(location.pathname);
 
   if (isPublicPage) {
@@ -41,7 +35,6 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       
       <Header 
         businessName="Sachi Dudh Ganga" 
-        session={estimatedSession}
         onMenuClick={() => setDrawerOpen(true)} 
       />
       

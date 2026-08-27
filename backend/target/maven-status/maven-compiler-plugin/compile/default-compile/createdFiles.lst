@@ -22,5 +22,4 @@ com\liter\dto\LoginResponse.class
 com\liter\model\Customer.class
 com\liter\repository\CustomerPriceHistoryRepository.class
 com\liter\dto\UserResponse.class
-com\liter\controller\CustomerController.class
 com\liter\security\UserDetailsServiceImpl.class

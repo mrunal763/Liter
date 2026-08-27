@@ -12,7 +12,7 @@ export const Settings: React.FC = () => {
   const navigate = useNavigate();
 
   // Active Settings Sub-Tab
-  const [activeTab, setActiveTab] = useState<'profile' | 'payments' | 'pricing' | 'danger'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'danger'>('profile');
 
   // Form State
   const [profile, setProfile] = useState({
@@ -23,10 +23,6 @@ export const Settings: React.FC = () => {
     email: 'owner@kairy.com',
     address: 'Krishna Farm, Pune Outskirts, Maharashtra',
     upiId: 'sachidudhganga@upi',
-    cowRate: 60,
-    buffaloRate: 75,
-    morningTime: '06:30 AM',
-    eveningTime: '06:30 PM',
     autoWhatsApp: true,
     lowBalanceWarning: 500
   });
@@ -140,7 +136,7 @@ export const Settings: React.FC = () => {
             <span>Business & System Settings</span>
           </h2>
           <p style={{ fontSize: '13px', color: 'var(--secondary-text)', marginTop: '4px', margin: 0 }}>
-            Manage your dairy business profile, rates, UPI configuration, and account security
+            Manage your dairy business profile, UPI configuration, and account security
           </p>
         </div>
 
@@ -218,8 +214,6 @@ export const Settings: React.FC = () => {
       }}>
         {[
           { id: 'profile', label: '🏢 Dairy Profile', icon: Building },
-          { id: 'payments', label: '💳 UPI & Payments', icon: QrCode },
-          { id: 'pricing', label: '🥛 Pricing & Schedule', icon: Clock },
           { id: 'danger', label: '⚠️ Account & Danger Zone', icon: ShieldAlert }
         ].map((tab) => {
           const isActive = activeTab === tab.id;
@@ -317,101 +311,7 @@ export const Settings: React.FC = () => {
         </form>
       )}
 
-      {/* TAB 2: UPI & PAYMENT CONFIGURATION */}
-      {activeTab === 'payments' && (
-        <form onSubmit={handleSubmit} className="card" style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--primary-text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <QrCode size={18} style={{ color: 'var(--primary-green)' }} />
-            <span>Digital Payment & UPI Configuration</span>
-          </h3>
-          <p style={{ fontSize: '13px', color: 'var(--secondary-text)', margin: 0 }}>
-            Your UPI VPA ID is automatically embedded into customer bills and WhatsApp payment links.
-          </p>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '18px' }}>
-            <div className="form-group">
-              <label className="form-label" style={{ fontWeight: 600 }}>UPI VPA ID (For Instant Pay Links / QR)</label>
-              <input 
-                type="text" className="form-input"
-                value={profile.upiId}
-                onChange={(e) => setProfile({ ...profile, upiId: e.target.value })}
-                placeholder="e.g. krishnadairy@upi or 9876543210@paytm"
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label" style={{ fontWeight: 600 }}>WhatsApp Auto-Bill Receipts</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', height: '42px' }}>
-                <input 
-                  type="checkbox"
-                  id="autoWhatsApp"
-                  checked={profile.autoWhatsApp}
-                  onChange={(e) => setProfile({ ...profile, autoWhatsApp: e.target.checked })}
-                  style={{ accentColor: 'var(--primary-green)', width: '18px', height: '18px', cursor: 'pointer' }}
-                />
-                <label htmlFor="autoWhatsApp" style={{ fontSize: '14px', cursor: 'pointer', fontWeight: 500 }}>
-                  Enable 1-Click WhatsApp Ledger Summary
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
-            <button type="submit" disabled={loading} className="btn-primary" style={{ display: 'inline-flex', gap: '8px', padding: '12px 24px' }}>
-              <Save size={18} />
-              <span>Save Payment Settings</span>
-            </button>
-          </div>
-        </form>
-      )}
-
-      {/* TAB 3: PRICING & DELIVERY SCHEDULE */}
-      {activeTab === 'pricing' && (
-        <form onSubmit={handleSubmit} className="card" style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--primary-text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Clock size={18} style={{ color: 'var(--primary-green)' }} />
-            <span>Default Milk Rates & Shift Timings</span>
-          </h3>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '18px' }}>
-            <div className="form-group">
-              <label className="form-label" style={{ fontWeight: 600 }}>Default Milk Rate (₹ / Liter) *</label>
-              <input 
-                type="number" className="form-input" min="1"
-                value={profile.buffaloRate}
-                onChange={(e) => setProfile({ ...profile, buffaloRate: Number(e.target.value) })}
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label" style={{ fontWeight: 600 }}>Morning Delivery Time</label>
-              <input 
-                type="text" className="form-input"
-                value={profile.morningTime}
-                onChange={(e) => setProfile({ ...profile, morningTime: e.target.value })}
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label" style={{ fontWeight: 600 }}>Evening Delivery Time</label>
-              <input 
-                type="text" className="form-input"
-                value={profile.eveningTime}
-                onChange={(e) => setProfile({ ...profile, eveningTime: e.target.value })}
-              />
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
-            <button type="submit" disabled={loading} className="btn-primary" style={{ display: 'inline-flex', gap: '8px', padding: '12px 24px' }}>
-              <Save size={18} />
-              <span>Save Rates & Schedule</span>
-            </button>
-          </div>
-        </form>
-      )}
-
-      {/* TAB 4: ACCOUNT MANAGEMENT & DANGER ZONE */}
+      {/* TAB 2: ACCOUNT MANAGEMENT & DANGER ZONE */}
       {activeTab === 'danger' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {/* Logout Card */}

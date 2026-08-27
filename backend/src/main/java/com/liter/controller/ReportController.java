@@ -124,9 +124,20 @@ public class ReportController {
         return ResponseEntity.ok(list);
     }
 
+    @Autowired
+    private com.liter.repository.UserRepository userRepository;
+
+    private User getCurrentUser(java.security.Principal principal) {
+        if (principal == null) return null;
+        return userRepository.findByUsername(principal.getName()).orElse(null);
+    }
+
     @GetMapping("/customers")
-    public ResponseEntity<List<CustomerReportResponse>> getCustomerReport() {
-        List<Customer> customers = customerRepository.findAll();
+    public ResponseEntity<List<CustomerReportResponse>> getCustomerReport(java.security.Principal principal) {
+        User currentUser = getCurrentUser(principal);
+        List<Customer> customers = currentUser != null 
+                ? customerRepository.findByUser(currentUser) 
+                : new ArrayList<>();
         List<CustomerReportResponse> report = new ArrayList<>();
 
         for (Customer customer : customers) {

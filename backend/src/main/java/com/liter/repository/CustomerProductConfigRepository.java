@@ -9,4 +9,5 @@ public interface CustomerProductConfigRepository extends JpaRepository<CustomerP
     List<CustomerProductConfig> findByCustomerIdAndActive(Long customerId, boolean active);
     List<CustomerProductConfig> findByCustomerId(Long customerId);
     Optional<CustomerProductConfig> findByCustomerIdAndProductId(Long customerId, Long productId);
+    void deleteByCustomerId(Long customerId);
 }

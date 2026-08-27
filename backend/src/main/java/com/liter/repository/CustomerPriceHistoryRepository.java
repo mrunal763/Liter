@@ -8,4 +8,5 @@ import java.util.Optional;
 public interface CustomerPriceHistoryRepository extends JpaRepository<CustomerPriceHistory, Long> {
     Optional<CustomerPriceHistory> findFirstByCustomerIdAndProductIdAndEndDateIsNull(Long customerId, Long productId);
     List<CustomerPriceHistory> findByCustomerIdAndProductIdOrderByStartDateDesc(Long customerId, Long productId);
+    void deleteByCustomerId(Long customerId);
 }

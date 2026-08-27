@@ -10,4 +10,5 @@ public interface BillRepository extends JpaRepository<Bill, Long> {
     List<Bill> findByCustomerIdAndStatusNot(Long customerId, String status);
     List<Bill> findByCustomerIdAndStatusNotOrderByBillPeriodStartAsc(Long customerId, String status);
     List<Bill> findByBillPeriodStartGreaterThanEqualAndBillPeriodEndLessThanEqual(LocalDate start, LocalDate end);
+    void deleteByCustomerId(Long customerId);
 }
