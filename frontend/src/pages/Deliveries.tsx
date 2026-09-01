@@ -995,10 +995,37 @@ export const Deliveries: React.FC = () => {
               </div>
               
               {adjustItems.map(item => {
+                const isPaneer = (item.productName || '').toLowerCase().includes('paneer');
+                const isCurd = (item.productName || '').toLowerCase().includes('curd') || (item.unit || '').toLowerCase().includes('pack') || (item.unit || '').toLowerCase().includes('sher');
+                
+                const itemUnit = isPaneer ? 'kg' : item.unit;
                 const diffVal = item.quantity - item.defaultQuantity;
                 const isOver = diffVal !== 0;
                 const price = item.appliedPrice ?? 0;
                 const lineTotal = item.quantity * price;
+
+                // Preset options: Curd => [1,2,3,4,5,6,7,8], Paneer => [0.25, 0.5, 0.75, 1, 1.5, 2, 2.5, 5] kg, Milk => [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3] L
+                const presetButtons = isCurd
+                  ? [
+                      { label: '0 (Skip)', val: 0 },
+                      { label: '1', val: 1 }, { label: '2', val: 2 }, { label: '3', val: 3 }, { label: '4', val: 4 },
+                      { label: '5', val: 5 }, { label: '6', val: 6 }, { label: '7', val: 7 }, { label: '8', val: 8 }
+                    ]
+                  : isPaneer
+                  ? [
+                      { label: '0 (Skip)', val: 0 },
+                      { label: '0.25 kg', val: 0.25 }, { label: '0.5 kg', val: 0.5 }, { label: '0.75 kg', val: 0.75 },
+                      { label: '1 kg', val: 1.0 }, { label: '1.5 kg', val: 1.5 }, { label: '2 kg', val: 2.0 },
+                      { label: '2.5 kg', val: 2.5 }, { label: '5 kg', val: 5.0 }
+                    ]
+                  : [
+                      { label: '0 (Skip)', val: 0 },
+                      { label: `0.25 ${itemUnit}`, val: 0.25 }, { label: `0.5 ${itemUnit}`, val: 0.5 },
+                      { label: `0.75 ${itemUnit}`, val: 0.75 }, { label: `1 ${itemUnit}`, val: 1.0 },
+                      { label: `1.25 ${itemUnit}`, val: 1.25 }, { label: `1.5 ${itemUnit}`, val: 1.5 },
+                      { label: `2 ${itemUnit}`, val: 2.0 }, { label: `2.5 ${itemUnit}`, val: 2.5 },
+                      { label: `3 ${itemUnit}`, val: 3.0 }
+                    ];
 
                 return (
                   <div key={item.productId} style={{
@@ -1013,34 +1040,34 @@ export const Deliveries: React.FC = () => {
                           backgroundColor: '#D1FAE5', padding: '2px 8px', borderRadius: '6px',
                           border: '1px solid #A7F3D0'
                         }}>
-                          Price: ₹{price.toFixed(2)} / {item.unit}
+                          Price: ₹{price.toFixed(2)} / {itemUnit}
                         </span>
                       </div>
                       <div style={{ fontSize: '12px', color: 'var(--secondary-text)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                        <span>Regular Plan: <strong>{item.defaultQuantity} {item.unit}</strong></span>
+                        <span>Regular Plan: <strong>{item.defaultQuantity} {itemUnit}</strong></span>
                         <span>&bull;</span>
                         <span style={{ color: 'var(--primary-text)', fontWeight: 600 }}>
                           Subtotal: <strong>₹{lineTotal.toFixed(2)}</strong>
                         </span>
                       </div>
 
-                      {/* QUICK QUANTITY PRESETS (0.25, 0.5, 0.75, 1, 1.5, 2, 3) */}
+                      {/* QUICK QUANTITY PRESETS (Curd: 1..8 | Paneer: kg | Milk: L) */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '8px', paddingTop: '6px', borderTop: '1px dashed var(--border-color)' }}>
                         <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--secondary-text)' }}>Quick Qty:</span>
-                        {[0, 0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0].map(q => (
+                        {presetButtons.map(btn => (
                           <button
-                            key={q}
+                            key={btn.val}
                             type="button"
-                            onClick={() => handleAdjustItemQtyChange(item.productId, q)}
+                            onClick={() => handleAdjustItemQtyChange(item.productId, btn.val)}
                             style={{
-                              padding: '3px 8px', borderRadius: '6px',
-                              border: item.quantity === q ? '1px solid var(--primary-green)' : '1px solid var(--border-color)',
-                              backgroundColor: item.quantity === q ? 'var(--primary-green)' : '#fff',
-                              color: item.quantity === q ? '#fff' : 'var(--primary-text)',
-                              fontSize: '11px', fontWeight: 700, cursor: 'pointer'
+                              padding: '4px 9px', borderRadius: '6px',
+                              border: item.quantity === btn.val ? '1px solid var(--primary-green)' : '1px solid var(--border-color)',
+                              backgroundColor: item.quantity === btn.val ? 'var(--primary-green)' : '#fff',
+                              color: item.quantity === btn.val ? '#fff' : 'var(--primary-text)',
+                              fontSize: '12px', fontWeight: 700, cursor: 'pointer'
                             }}
                           >
-                            {q === 0 ? '0 (Skip)' : `${q} ${item.unit}`}
+                            {btn.label}
                           </button>
                         ))}
                       </div>
@@ -1048,9 +1075,9 @@ export const Deliveries: React.FC = () => {
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                        <label style={{ fontSize: '10px', color: 'var(--secondary-text)', fontWeight: 700 }}>TODAY QTY ({item.unit})</label>
+                        <label style={{ fontSize: '10px', color: 'var(--secondary-text)', fontWeight: 700 }}>TODAY QTY ({itemUnit})</label>
                         <input 
-                          type="number" step="0.1" min="0"
+                          type="number" step="0.01" min="0"
                           value={item.quantity}
                           onChange={(e) => handleAdjustItemQtyChange(item.productId, parseFloat(e.target.value) || 0)}
                           style={{
@@ -1063,7 +1090,7 @@ export const Deliveries: React.FC = () => {
 
                       {isOver && (
                         <span style={{ fontSize: '12px', fontWeight: 800, color: diffVal > 0 ? 'var(--primary-green)' : '#dc2626' }}>
-                          {diffVal > 0 ? `+${diffVal.toFixed(1)} ${item.unit}` : `${diffVal.toFixed(1)} ${item.unit}`}
+                          {diffVal > 0 ? `+${diffVal.toFixed(2)} ${itemUnit}` : `${diffVal.toFixed(2)} ${itemUnit}`}
                         </span>
                       )}
                     </div>
@@ -1073,63 +1100,83 @@ export const Deliveries: React.FC = () => {
             </div>
 
             {/* Inline Add One-Time Extra Product */}
-            <div style={{
-              padding: '12px 14px', borderRadius: '10px', border: '1px dashed var(--primary-green)',
-              backgroundColor: 'rgba(74, 186, 126, 0.05)', display: 'flex', flexDirection: 'column', gap: '10px'
-            }}>
-              <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--primary-green)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <PackagePlus size={15} />
-                <span>+ Add Extra Product Demand (One-Day Only)</span>
-              </div>
+            {(() => {
+              const selectedProd = productsList.find(p => p.id === selectedExtraProductId);
+              const extraProdName = (selectedProd?.name || '').toLowerCase();
+              const extraProdUnit = (selectedProd?.unit || '').toLowerCase();
+              const isExtraCurd = extraProdName.includes('curd') || extraProdUnit.includes('pack') || extraProdUnit.includes('sher');
+              const isExtraPaneer = extraProdName.includes('paneer') || extraProdUnit === 'kg';
+              const displayExtraUnit = isExtraPaneer ? 'kg' : (selectedProd?.unit || 'L');
 
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '8px' }}>
-                <select 
-                  className="form-input"
-                  value={selectedExtraProductId}
-                  onChange={(e) => setSelectedExtraProductId(Number(e.target.value))}
-                  style={{ background: '#fff', fontSize: '12px', padding: '6px 8px' }}
-                >
-                  {productsList.map(p => (
-                    <option key={p.id} value={p.id}>{p.name} ({p.unit}) — ₹{p.defaultPrice}</option>
-                  ))}
-                </select>
+              const extraPresets = isExtraCurd
+                ? [1, 2, 3, 4, 5, 6, 7, 8]
+                : isExtraPaneer
+                ? [0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 2.5, 5.0]
+                : [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0];
 
-                <input 
-                  type="number" step="0.1" min="0.1" className="form-input"
-                  value={extraQty} onChange={(e) => setExtraQty(Number(e.target.value))}
-                  placeholder="Qty" style={{ background: '#fff', fontSize: '12px', padding: '6px 8px' }}
-                />
+              return (
+                <div style={{
+                  padding: '12px 14px', borderRadius: '10px', border: '1px dashed var(--primary-green)',
+                  backgroundColor: 'rgba(74, 186, 126, 0.05)', display: 'flex', flexDirection: 'column', gap: '10px'
+                }}>
+                  <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--primary-green)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <PackagePlus size={15} />
+                    <span>+ Add Extra Product Demand (One-Day Only)</span>
+                  </div>
 
-                <button 
-                  type="button"
-                  onClick={handleAddExtraProductInAdjust}
-                  style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: 'var(--primary-green)', color: '#fff', fontWeight: 800, fontSize: '12px', cursor: 'pointer' }}
-                >
-                  Add
-                </button>
-              </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '8px' }}>
+                    <select 
+                      className="form-input"
+                      value={selectedExtraProductId}
+                      onChange={(e) => setSelectedExtraProductId(Number(e.target.value))}
+                      style={{ background: '#fff', fontSize: '12px', padding: '6px 8px' }}
+                    >
+                      {productsList.map(p => {
+                        const pUnit = p.name.toLowerCase().includes('paneer') ? 'kg' : p.unit;
+                        return (
+                          <option key={p.id} value={p.id}>{p.name} ({pUnit}) — ₹{p.defaultPrice}</option>
+                        );
+                      })}
+                    </select>
 
-              {/* Quick Preset Buttons for Extra Product Qty */}
-              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--secondary-text)' }}>Quick Qty Presets:</span>
-                {[0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0].map(q => (
-                  <button
-                    key={q}
-                    type="button"
-                    onClick={() => setExtraQty(q)}
-                    style={{
-                      padding: '3px 8px', borderRadius: '6px',
-                      border: extraQty === q ? '1px solid var(--primary-green)' : '1px solid var(--border-color)',
-                      backgroundColor: extraQty === q ? 'var(--primary-green)' : '#fff',
-                      color: extraQty === q ? '#fff' : 'var(--primary-text)',
-                      fontSize: '11px', fontWeight: 700, cursor: 'pointer'
-                    }}
-                  >
-                    {q} L
-                  </button>
-                ))}
-              </div>
-            </div>
+                    <input 
+                      type="number" step="0.01" min="0.01" className="form-input"
+                      value={extraQty} onChange={(e) => setExtraQty(Number(e.target.value))}
+                      placeholder="Qty" style={{ background: '#fff', fontSize: '12px', padding: '6px 8px' }}
+                    />
+
+                    <button 
+                      type="button"
+                      onClick={handleAddExtraProductInAdjust}
+                      style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: 'var(--primary-green)', color: '#fff', fontWeight: 800, fontSize: '12px', cursor: 'pointer' }}
+                    >
+                      Add
+                    </button>
+                  </div>
+
+                  {/* Quick Preset Buttons for Extra Product Qty */}
+                  <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--secondary-text)' }}>Quick Qty ({displayExtraUnit}):</span>
+                    {extraPresets.map(q => (
+                      <button
+                        key={q}
+                        type="button"
+                        onClick={() => setExtraQty(q)}
+                        style={{
+                          padding: '3px 8px', borderRadius: '6px',
+                          border: extraQty === q ? '1px solid var(--primary-green)' : '1px solid var(--border-color)',
+                          backgroundColor: extraQty === q ? 'var(--primary-green)' : '#fff',
+                          color: extraQty === q ? '#fff' : 'var(--primary-text)',
+                          fontSize: '11px', fontWeight: 700, cursor: 'pointer'
+                        }}
+                      >
+                        {isExtraCurd ? q : `${q} ${displayExtraUnit}`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Optional Note Input */}
             <div className="form-group" style={{ marginBottom: 0 }}>

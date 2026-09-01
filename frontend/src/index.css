@@ -100,17 +100,26 @@ button:active {
   animation: fadeIn 0.25s ease-in-out;
 }
 
-/* Base Card Redesign */
+/* Base Card Redesign with Mobile Responsive Padding */
 .card {
   background-color: var(--white);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: 24px;
+  padding: 20px;
   margin-bottom: 16px;
   box-shadow: var(--shadow-sm);
   position: relative;
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 640px) {
+  .card {
+    padding: 14px 14px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+  }
 }
 
 /* Premium Top Accent Line for Cards */
@@ -126,7 +135,7 @@ button:active {
 }
 
 .card:hover {
-  transform: translateY(-6px);
+  transform: translateY(-4px);
   box-shadow: var(--shadow-lg);
   border-color: var(--primary-green);
 }
@@ -349,11 +358,12 @@ button:active {
   left: 0;
   right: 0;
   height: 64px;
-  background-color: var(--white);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background-color: #FFFFFF;
   border-top: 1px solid var(--border-color);
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06);
   z-index: 120;
 }
 
@@ -364,13 +374,21 @@ button:active {
   justify-content: center;
   color: var(--secondary-text);
   text-decoration: none;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
-  gap: 4px;
+  gap: 3px;
+  transition: all 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .nav-item.active {
   color: var(--primary-green);
+  font-weight: 700;
+}
+
+.nav-item.active svg {
+  transform: translateY(-2px);
+  filter: drop-shadow(0 2px 4px rgba(46, 125, 50, 0.3));
 }
 
 /* Mobile Top Header */
@@ -773,6 +791,46 @@ nav.desktop-only, div.desktop-only {
   .main-content {
     max-width: 1300px;
     padding: 40px 60px;
+  }
+}
+
+/* Mobile App Overlay Modals */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal-card {
+  background-color: #ffffff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 24px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+@media (max-width: 640px) {
+  .modal-overlay {
+    padding: 10px;
+  }
+  .modal-card {
+    padding: 16px;
+    border-radius: 12px;
+    max-height: 95vh;
   }
 }
 
