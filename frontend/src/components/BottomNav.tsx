@@ -17,11 +17,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({ onMoreClick }) => {
   return (
     <nav className="bottom-nav">
       <NavLink 
-        to="/" 
-        className={({ isActive }) => `nav-item ${isActive && location.pathname === '/' ? 'active' : ''}`}
+        to="/dashboard" 
+        className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
       >
         <Home size={20} />
-        <span>Home</span>
+        <span>Dashboard</span>
       </NavLink>
 
       <NavLink 

@@ -16,7 +16,6 @@ import { Deliveries } from './pages/Deliveries';
 import { Customers } from './pages/Customers';
 import { Billing } from './pages/Billing';
 import { Products } from './pages/Products';
-import { Payments } from './pages/Payments';
 import { Reports } from './pages/Reports';
 import { Settings } from './pages/Settings';
 
@@ -87,12 +86,6 @@ export const AppContent: React.FC = () => {
           <Route path="/products" element={
             <ProtectedRoute>
               <Products />
-            </ProtectedRoute>
-          } />
-
-          <Route path="/payments" element={
-            <ProtectedRoute>
-              <Payments />
             </ProtectedRoute>
           } />
 
