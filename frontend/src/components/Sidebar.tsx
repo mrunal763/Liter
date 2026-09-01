@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Home, ClipboardCheck, Users, Receipt, Settings, BarChart3, LogOut, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -50,7 +50,7 @@ export const Sidebar: React.FC = () => {
           fontWeight: '500',
           marginTop: '4px'
         }}>
-          Liter
+          Made with ❤️ by Mrunal
         </span>
       </div>
 

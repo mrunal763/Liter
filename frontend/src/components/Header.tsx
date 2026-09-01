@@ -9,7 +9,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  businessName = 'Sachi Dudh Ganga',
+  businessName = 'Made with ❤️ by Mrunal',
   date = new Date(),
   onMenuClick
 }) => {

@@ -14,7 +14,7 @@ export const Dashboard: React.FC = () => {
     customersServed: 0,
     outstandingAmount: 0
   });
-  const [businessName, setBusinessName] = useState('Sachi Dudh Ganga');
+  const [businessName, setBusinessName] = useState('Made with ❤️ by Mrunal');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

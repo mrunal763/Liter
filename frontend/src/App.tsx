@@ -33,7 +33,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       <Sidebar />
       
       <Header 
-        businessName="Sachi Dudh Ganga" 
+        businessName="Made with ❤️ by Mrunal" 
         onMenuClick={() => setDrawerOpen(true)} 
       />
       
