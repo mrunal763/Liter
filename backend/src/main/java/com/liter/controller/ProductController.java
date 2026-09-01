@@ -15,6 +15,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.annotation.Transactional;
+
 @RestController
 @RequestMapping("/api/products")
 public class ProductController {
@@ -24,6 +27,9 @@ public class ProductController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     private User resolveCurrentUser(Principal principal) {
         if (principal != null) {
@@ -97,6 +103,7 @@ public class ProductController {
     }
 
     @DeleteMapping("/{id}")
+    @Transactional
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id, Principal principal) {
         User currentUser = resolveCurrentUser(principal);
         if (currentUser == null) {
@@ -107,6 +114,12 @@ public class ProductController {
         if (pOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
+
+        // Clean up all foreign key references in dependent tables before deleting product
+        jdbcTemplate.update("DELETE FROM customer_product_configs WHERE product_id = ?", id);
+        jdbcTemplate.update("DELETE FROM customer_price_history WHERE product_id = ?", id);
+        jdbcTemplate.update("DELETE FROM delivery_transactions WHERE product_id = ?", id);
+        jdbcTemplate.update("DELETE FROM bill_items WHERE product_id = ?", id);
 
         productRepository.deleteById(id);
         return ResponseEntity.noContent().build();

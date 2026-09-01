@@ -496,10 +496,10 @@ export const Customers: React.FC = () => {
                         <span style={{ fontSize: '11px', color: 'var(--secondary-text)' }}>({unitLabel} / day)</span>
                       </label>
                       <input 
-                        type="number" step="0.1" min="0.1" className="form-input" required
+                        type="number" step="0.01" min="0.01" className="form-input" required
                         value={newCust.quantity}
                         onChange={(e) => setNewCust({ ...newCust, quantity: parseFloat(e.target.value) || 0 })}
-                        placeholder="Daily Quantity" style={{ background: '#fff', fontWeight: 700 }}
+                        placeholder="e.g. 0.25, 0.5, 0.75, 1, 1.25" style={{ background: '#fff', fontWeight: 700 }}
                       />
                     </div>
 
@@ -524,15 +524,15 @@ export const Customers: React.FC = () => {
                   </div>
 
                   {/* 1-Click Quick Quantity Steppers */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', paddingTop: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', paddingTop: '6px' }}>
                     <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--secondary-text)' }}>Quick Daily Presets:</span>
-                    {[0.5, 1.0, 1.5, 2.0, 3.0].map(q => (
+                    {[0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0].map(q => (
                       <button
                         key={q}
                         type="button"
                         onClick={() => setNewCust({ ...newCust, quantity: q })}
                         style={{
-                          padding: '4px 10px', borderRadius: '6px',
+                          padding: '4px 8px', borderRadius: '6px',
                           border: newCust.quantity === q ? '1px solid var(--primary-green)' : '1px solid var(--border-color)',
                           backgroundColor: newCust.quantity === q ? 'var(--primary-green)' : 'var(--white)',
                           color: newCust.quantity === q ? '#fff' : 'var(--primary-text)',
@@ -772,7 +772,7 @@ export const Customers: React.FC = () => {
                               <div className="form-group" style={{ marginBottom: 0 }}>
                                 <label className="form-label" style={{ fontSize: '11px', fontWeight: 700 }}>DAILY QTY ({p.unit} / day)</label>
                                 <input 
-                                  type="number" step="0.1" className="form-input"
+                                  type="number" step="0.01" className="form-input"
                                   value={conf.defaultQuantity}
                                   onChange={(e) => handleConfigChange(p.id, 'defaultQuantity', e.target.value)}
                                   style={{ background: '#fff', fontWeight: 700 }}
@@ -793,7 +793,7 @@ export const Customers: React.FC = () => {
                             {/* Quick Daily Presets for Subscription Config */}
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
                               <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--secondary-text)' }}>Quick Presets:</span>
-                              {[0.5, 1.0, 1.5, 2.0, 3.0].map(q => (
+                              {[0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0].map(q => (
                                 <button
                                   key={q}
                                   type="button"
