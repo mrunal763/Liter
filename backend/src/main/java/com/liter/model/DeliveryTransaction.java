@@ -33,7 +33,7 @@ public class DeliveryTransaction {
     @Column(nullable = false, precision = 6, scale = 2)
     private BigDecimal quantity = BigDecimal.ZERO;
 
-    @Column(nullable = false, length = 10)
+    @Column(nullable = false, length = 50)
     private String unit;
 
     @Column(name = "applied_price", nullable = false, precision = 10, scale = 2)

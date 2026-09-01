@@ -150,11 +150,13 @@ export const Products: React.FC = () => {
     setProducts(prev => prev.filter(p => p.id !== id));
 
     try {
-      await authFetch(`/products/${id}`, {
+      const response = await authFetch(`/products/${id}`, {
         method: 'DELETE'
       });
+      await fetchProducts();
     } catch (err) {
       console.error('Error deleting product from database:', err);
+      await fetchProducts();
     }
   };
 

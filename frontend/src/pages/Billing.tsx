@@ -84,7 +84,6 @@ export const Billing: React.FC = () => {
 
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   // Selected Invoice Modal State
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
@@ -121,12 +120,10 @@ export const Billing: React.FC = () => {
   // Fetch Bills matching current inclusive date range & customer filters
   const fetchBills = async () => {
     if (new Date(endDate) < new Date(startDate)) {
-      setMessage({ type: 'error', text: '⚠️ Invalid Date Range: End Date cannot be before Start Date.' });
       return;
     }
 
     setLoading(true);
-    setMessage(null);
     try {
       let queryUrl = `/billing/history?start=${startDate}&end=${endDate}`;
       if (selectedCustomerId !== 'ALL') {
@@ -137,12 +134,9 @@ export const Billing: React.FC = () => {
       if (response.ok) {
         const data = await response.json();
         setBills(data);
-      } else {
-        const errText = await response.text();
-        setMessage({ type: 'error', text: errText || 'Failed to load bills for selected period.' });
       }
     } catch (e) {
-      setMessage({ type: 'error', text: 'Network connection error while fetching billing statements.' });
+      console.error('Error fetching billing statements:', e);
     } finally {
       setLoading(false);
     }
@@ -166,66 +160,49 @@ export const Billing: React.FC = () => {
     setEndDate(endMonth);
     setSelectedCustomerId('ALL');
     setSearchQuery('');
-    setMessage(null);
   };
 
   // Delete Individual Bill
-  const handleDeleteBill = async (billId: number, custName: string) => {
-    if (!window.confirm(`Are you sure you want to delete the bill for "${custName}" (#INV-${billId})?`)) {
-      return;
-    }
-
+  const handleDeleteBill = async (billId: number) => {
     try {
       const response = await authFetch(`/billing/${billId}`, {
         method: 'DELETE'
       });
 
       if (response.ok) {
-        setMessage({ type: 'success', text: `🗑️ Bill #INV-${billId} deleted successfully.` });
         if (selectedBill?.id === billId) {
           setSelectedBill(null);
         }
         fetchBills();
-      } else {
-        setMessage({ type: 'error', text: 'Failed to delete bill.' });
       }
     } catch (err) {
-      setMessage({ type: 'error', text: 'Error deleting bill.' });
+      console.error('Error deleting bill:', err);
     }
   };
 
   // Delete All Bills
   const handleDeleteAllBills = async () => {
-    if (!window.confirm('⚠️ Are you sure you want to delete ALL generated bills? This action cannot be undone.')) {
-      return;
-    }
-
     try {
       const response = await authFetch('/billing/all', {
         method: 'DELETE'
       });
 
       if (response.ok) {
-        setMessage({ type: 'success', text: '🗑️ All generated bills deleted successfully.' });
         setSelectedBill(null);
         fetchBills();
-      } else {
-        setMessage({ type: 'error', text: 'Failed to delete all bills.' });
       }
     } catch (err) {
-      setMessage({ type: 'error', text: 'Error deleting all bills.' });
+      console.error('Error deleting all bills:', err);
     }
   };
 
   // Generate / Regenerate Bills for filtered customer(s)
   const handleGenerateBills = async (targetCustId?: number) => {
     if (new Date(endDate) < new Date(startDate)) {
-      setMessage({ type: 'error', text: '⚠️ Invalid Date Range: End Date cannot be before Start Date.' });
       return;
     }
 
     setGenerating(true);
-    setMessage(null);
 
     try {
       const payload: any = {
@@ -245,25 +222,10 @@ export const Billing: React.FC = () => {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        if (data.length > 0) {
-          setMessage({
-            type: 'success',
-            text: `✅ Generated ${data.length} bill statement(s) for period ${startDate} to ${endDate} (Inclusive).`
-          });
-        } else {
-          setMessage({
-            type: 'error',
-            text: 'No delivered items found in this period for the selected customer(s).'
-          });
-        }
         fetchBills();
-      } else {
-        const errText = await response.text();
-        setMessage({ type: 'error', text: errText || 'Failed to generate bills.' });
       }
     } catch (e) {
-      setMessage({ type: 'error', text: 'Network error generating bills.' });
+      console.error('Error generating bills:', e);
     } finally {
       setGenerating(false);
     }
@@ -507,7 +469,7 @@ export const Billing: React.FC = () => {
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '14px', paddingTop: '12px', borderTop: '1px solid var(--border-color)', gap: '10px', flexWrap: 'wrap' }}>
                   <button
-                    onClick={() => handleDeleteBill(bill.id, custName)}
+                    onClick={() => handleDeleteBill(bill.id)}
                     style={{
                       backgroundColor: '#FEE2E2', color: '#991B1B',
                       padding: '8px 16px', borderRadius: '8px', border: 'none',
@@ -568,7 +530,7 @@ export const Billing: React.FC = () => {
                 </button>
 
                 <button
-                  type="button" onClick={() => handleDeleteBill(selectedBill.id, selectedBill.customer?.name || selectedBill.customerName || 'Customer')}
+                  type="button" onClick={() => handleDeleteBill(selectedBill.id)}
                   style={{ padding: '8px 14px', borderRadius: '8px', border: 'none', background: '#FEE2E2', color: '#991B1B', fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
                   <Trash2 size={16} />
