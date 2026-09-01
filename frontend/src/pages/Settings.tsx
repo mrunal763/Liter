@@ -17,7 +17,7 @@ export const Settings: React.FC = () => {
   // Form State
   const [profile, setProfile] = useState({
     id: 1,
-    businessName: 'Sachi Dudh Ganga',
+    businessName: 'Made with ❤️ by Mrunal',
     ownerName: user?.fullName || 'Mrunal',
     mobileNumber: '9876543210',
     email: 'owner@kairy.com',
