@@ -5,6 +5,8 @@ import {
   ArrowLeft, CheckCircle2, ShieldCheck, ChevronRight, ChevronLeft 
 } from 'lucide-react';
 
+import { getApiUrl } from '../config/api';
+
 export const Register: React.FC = () => {
   const navigate = useNavigate();
 
@@ -73,7 +75,7 @@ export const Register: React.FC = () => {
     setLoading(true);
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+      const API_URL = getApiUrl();
       const response = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: {
