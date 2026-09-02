@@ -89,8 +89,20 @@ export const Register: React.FC = () => {
       });
 
       if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || 'Registration failed. Please check your details.');
+        let errorMsg = 'Registration failed. Please check your details.';
+        try {
+          const text = await response.text();
+          if (text) {
+            // Try to parse if JSON error object or plain string
+            try {
+              const json = JSON.parse(text);
+              errorMsg = json.message || json.error || text;
+            } catch {
+              errorMsg = text;
+            }
+          }
+        } catch (e) {}
+        throw new Error(errorMsg);
       }
 
       setSuccess(true);
