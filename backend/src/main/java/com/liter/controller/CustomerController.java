@@ -154,7 +154,9 @@ public class CustomerController {
                 product = productRepository.findById(prodId).orElse(null);
             }
             if (product == null) {
-                List<Product> activeProds = productRepository.findByActive(true);
+                List<Product> activeProds = currentUser != null 
+                        ? productRepository.findByUserAndActive(currentUser, true) 
+                        : productRepository.findByActive(true);
                 product = activeProds.stream()
                         .filter(this::isMilkProduct)
                         .findFirst()
@@ -260,7 +262,9 @@ public class CustomerController {
         }
 
         List<CustomerProductConfig> configs = customerProductConfigRepository.findByCustomerId(id);
-        List<Product> allActiveProducts = productRepository.findByActive(true);
+        List<Product> allActiveProducts = currentUser != null 
+                ? productRepository.findByUserAndActive(currentUser, true) 
+                : productRepository.findByActive(true);
         List<Product> milkProducts = allActiveProducts.stream()
                 .filter(this::isMilkProduct)
                 .collect(java.util.stream.Collectors.toList());

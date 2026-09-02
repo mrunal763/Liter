@@ -63,6 +63,7 @@ public class AuthController {
         com.liter.model.DairyProfile profile = new com.liter.model.DairyProfile();
         profile.setBusinessName(registerRequest.getBusinessName());
         profile.setOwnerName(registerRequest.getFullName());
+        profile.setUser(savedUser);
         dairyProfileRepository.save(profile);
 
         return ResponseEntity.ok(new UserResponse(savedUser.getUsername(), savedUser.getEmail(), savedUser.getFullName(), savedUser.getRole()));

@@ -89,7 +89,9 @@ public class DeliveryController {
         List<Customer> activeCustomers = getActiveCustomersForDate(currentUser, localDate);
 
         List<DeliverySheetItem> sheet = new ArrayList<>();
-        List<Product> allActiveProducts = productRepository.findByActive(true);
+        List<Product> allActiveProducts = currentUser != null 
+                ? productRepository.findByUserAndActive(currentUser, true) 
+                : productRepository.findByActive(true);
 
         for (Customer customer : activeCustomers) {
             // 2. Fetch default subscription configurations for the customer
@@ -193,6 +195,12 @@ public class DeliveryController {
         // 4. Fetch any additional saved transactions for this date
         List<DeliveryTransaction> allSaved = deliveryTransactionRepository
                 .findByDeliveryDate(localDate);
+
+        if (currentUser != null) {
+            allSaved = allSaved.stream()
+                    .filter(dt -> dt.getCustomer() != null && dt.getCustomer().getUser() != null && dt.getCustomer().getUser().getId().equals(currentUser.getId()))
+                    .collect(Collectors.toList());
+        }
 
         for (DeliveryTransaction dt : allSaved) {
             if (dt.getCustomer() != null && localDate.isBefore(getEffectiveStartDate(dt.getCustomer()))) {
