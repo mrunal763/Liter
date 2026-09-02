@@ -110,7 +110,7 @@ public class BillingAndPaymentTests {
         }
 
         // Generate the Bill
-        Bill bill = billingService.generateBillForCustomer(customer.getId(), today.minusDays(5), today);
+        Bill bill = billingService.generateBillForCustomer(customer.getId(), today.minusDays(5), today, null);
 
         // Verify monthly totals
         // Expecting: 3 deliveries * ₹55.00 = ₹165.00
@@ -140,7 +140,7 @@ public class BillingAndPaymentTests {
             t.setStatus("DELIVERED");
             deliveryTransactionRepository.save(t);
         }
-        Bill bill1 = billingService.generateBillForCustomer(customer.getId(), today.minusDays(12), today.minusDays(10));
+        Bill bill1 = billingService.generateBillForCustomer(customer.getId(), today.minusDays(12), today.minusDays(10), null);
 
         // 2. Log deliveries for Bill 2 (Aug 6 to Aug 10) - total ₹55.00
         DeliveryTransaction t = new DeliveryTransaction();
@@ -154,7 +154,7 @@ public class BillingAndPaymentTests {
         t.setTotalAmount(t.getQuantity().multiply(t.getAppliedPrice()));
         t.setStatus("DELIVERED");
         deliveryTransactionRepository.save(t);
-        Bill bill2 = billingService.generateBillForCustomer(customer.getId(), today.minusDays(6), today.minusDays(4));
+        Bill bill2 = billingService.generateBillForCustomer(customer.getId(), today.minusDays(6), today.minusDays(4), null);
 
         // Check initial states
         assertEquals(0, new BigDecimal("110.00").compareTo(bill1.getOutstandingAmount()));
