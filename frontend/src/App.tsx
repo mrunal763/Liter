@@ -21,8 +21,23 @@ import { Settings } from './pages/Settings';
 
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [businessName, setBusinessName] = useState('Liter');
+  const { user, authFetch } = useAuth();
   const location = useLocation();
   const isPublicPage = ['/', '/login', '/register'].includes(location.pathname);
+
+  React.useEffect(() => {
+    if (!isPublicPage && user) {
+      authFetch('/settings/profile')
+        .then(res => res.ok ? res.json() : null)
+        .then(profile => {
+          if (profile && profile.businessName) {
+            setBusinessName(profile.businessName);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isPublicPage, user, location.pathname]);
 
   if (isPublicPage) {
     return <>{children}</>;
@@ -33,7 +48,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       <Sidebar />
       
       <Header 
-        businessName="Made with ❤️ by Mrunal" 
+        businessName={businessName} 
         onMenuClick={() => setDrawerOpen(true)} 
       />
       
