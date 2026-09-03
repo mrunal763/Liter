@@ -55,10 +55,12 @@ public class DeliveryController {
         LocalDate start = customer.getStartDate();
         LocalDate created = customer.getCreatedAt() != null ? customer.getCreatedAt().toLocalDate() : null;
 
-        if (start == null && created == null) return LocalDate.now(java.time.ZoneId.of("Asia/Kolkata"));
-        if (start == null) return created;
-        if (created == null) return start;
-        return start.isAfter(created) ? start : created;
+        if (start != null && created != null) {
+            return start.isBefore(created) ? start : created;
+        }
+        if (start != null) return start;
+        if (created != null) return created;
+        return LocalDate.now(java.time.ZoneId.of("Asia/Kolkata"));
     }
 
     private List<Customer> getActiveCustomersForDate(User currentUser, LocalDate localDate) {
@@ -437,8 +439,9 @@ public class DeliveryController {
             Customer customer = customerRepository.findById(customerId)
                     .orElseThrow(() -> new IllegalArgumentException("Customer not found: " + customerId));
 
-            if (customer.getStartDate() != null && date.isBefore(customer.getStartDate())) {
-                throw new IllegalArgumentException("Cannot mark delivery status for " + customer.getName() + " on " + date + " because customer was registered on " + customer.getStartDate());
+            LocalDate effectiveStart = getEffectiveStartDate(customer);
+            if (date.isBefore(effectiveStart)) {
+                throw new IllegalArgumentException("Cannot mark delivery status for " + customer.getName() + " on " + date + " because customer subscription starts on " + effectiveStart);
             }
             Product product = productRepository.findById(productId)
                     .orElseThrow(() -> new IllegalArgumentException("Product not found: " + productId));
