@@ -71,16 +71,28 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+        String username = loginRequest.getUsername() != null ? loginRequest.getUsername().trim() : "";
+        String password = loginRequest.getPassword() != null ? loginRequest.getPassword() : "";
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = jwtUtils.generateToken(loginRequest.getUsername());
+        System.out.println(">>> LOGIN ATTEMPT for username: '" + username + "'");
 
-        User user = userRepository.findByUsername(loginRequest.getUsername())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + loginRequest.getUsername()));
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(username, password));
 
-        return ResponseEntity.ok(new LoginResponse(jwt, user.getUsername(), user.getFullName()));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            User user = userRepository.findByUsernameIgnoreCase(username)
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+
+            String jwt = jwtUtils.generateToken(user.getUsername());
+
+            System.out.println(">>> LOGIN SUCCESSFUL for user: " + user.getUsername());
+            return ResponseEntity.ok(new LoginResponse(jwt, user.getUsername(), user.getFullName()));
+        } catch (Exception e) {
+            System.err.println(">>> LOGIN FAILED for user '" + username + "': " + e.getClass().getName() + " - " + e.getMessage());
+            return ResponseEntity.status(401).body("Login failed for user '" + username + "': " + e.getMessage());
+        }
     }
 
     @GetMapping("/me")
