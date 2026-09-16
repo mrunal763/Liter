@@ -20,16 +20,10 @@
     </properties>
 
     <dependencies>
-        <!-- Spring Boot Web - Tomcat excluded (Lambda handles HTTP) -->
+        <!-- Spring Boot Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-tomcat</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -51,6 +45,7 @@
             <scope>runtime</scope>
         </dependency>
 
+
         <!-- JWT Libraries -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
@@ -70,13 +65,6 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- AWS Serverless Java Container (bridges Lambda ↔ Spring Boot) -->
-        <dependency>
-            <groupId>com.amazonaws.serverless</groupId>
-            <artifactId>aws-serverless-java-container-springboot3</artifactId>
-            <version>2.0.3</version>
-        </dependency>
-
         <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -92,29 +80,9 @@
 
     <build>
         <plugins>
-            <!--
-                maven-shade-plugin creates a FLAT uber-JAR where all classes
-                live at the root level (e.g. com/liter/StreamHandler.class).
-                This is required for AWS Lambda's Java ClassLoader to find
-                com.liter.StreamHandler::handleRequest as the handler.
-                The standard spring-boot-maven-plugin creates a nested BOOT-INF
-                layout that Lambda CANNOT load.
-            -->
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>3.5.1</version>
-                <configuration>
-                    <createDependencyReducedPom>false</createDependencyReducedPom>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                    </execution>
-                </executions>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
         </plugins>
     </build>
