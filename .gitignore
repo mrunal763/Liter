@@ -1,0 +1,14 @@
+# Maven
+backend/target/
+!backend/target/classes/application.yml
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.class
+*.jar
