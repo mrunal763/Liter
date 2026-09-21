@@ -45,7 +45,6 @@
             <scope>runtime</scope>
         </dependency>
 
-
         <!-- JWT Libraries -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
