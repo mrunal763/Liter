@@ -1,149 +1,155 @@
 # Requirements Document — LITER
 
+> **Status key:** each requirement below is marked **✅ Implemented** (verifiable in the current codebase), **🟡 Partial** (implemented with documented deviations), or **📋 Planned** (not built; see §14).
+
 ## 1. Product Overview
-**LITER** is a private, single-tenant dairy business management application. It is designed specifically for a dairy farmer or owner who produces and sells milk and other dairy products directly to customers.
 
-* **Target User**: A single farmer / dairy owner.
-* **No Customer Portals**: Customers do not use this application, do not have accounts, and cannot log in.
-* **No Employee Management**: The first version is managed solely by the primary owner.
+**LITER** is a multi-tenant dairy business management web application. Each registered account represents one dairy owner who delivers milk and dairy products to customers on a daily route.
 
----
+* **Target user**: A dairy owner / operator (role `ROLE_OWNER`). Registration is open; every account is an isolated tenant.
+* **No customer portal**: Customers of the dairy do not use this application, do not have accounts, and cannot log in.
+* **No employee management**: The application is operated solely by the owner account. ✅ Implemented
+* **Live deployment**: Frontend at [liter-nine.vercel.app](https://liter-nine.vercel.app/); backend API deployed separately (Docker image).
 
-## 2. Branding & Configurable Identity
-* **Official Product Name**: LITER
-* **Tagline**: Dairy Business Management for Farmers
-* **Business Name**: Configurable separately by the owner in the settings (e.g. *Shree Krishna Dairy*). The business name must be prominently displayed alongside LITER.
+> **Deviation from original brief**: the product evolved from a strictly single-tenant tool into a multi-tenant application (any number of owner accounts, strict per-owner data isolation). All data queries are resolved against the authenticated principal.
 
 ---
 
-## 3. Product Catalog (Generic Items)
-The system must support generic products (no hardcoded product-specific logic).
-* **Initial Products**:
-  * Milk (L / ml)
-  * Curd (kg / g)
-  * Buttermilk (L / ml)
-  * Paneer (kg / g)
-  * Ghee (kg / g)
-  * Butter (kg / g)
-  * Lassi (L / ml / piece)
-* **Product Properties**:
-  * Name (Required, Unique)
-  * Category (Milk, Curd, Ghee, etc.)
-  * Unit (L, ml, kg, g, piece)
-  * Default Price (Required, Non-negative)
-  * Description
-  * Active/Inactive Status (Inactive products cannot be configured for new customer deliveries, but historical transactions remain untouched)
+## 2. Branding & Identity
+
+* **Product name**: LITER ✅ Implemented
+* **Business name**: Configured by the owner in Settings and displayed on invoices and the dashboard header. ✅ Implemented (`DairyProfile.businessName`)
+
+---
+
+## 3. Product Catalog
+
+Generic catalog with no hardcoded product logic. ✅ Implemented
+
+* **Properties**: Name (required, unique per owner, case-insensitive), Category, Unit (`L`, `ml`, `kg`, `g`, `piece`), Default Price (required, non-negative), Active flag.
+* **Deviations from brief**:
+  * Product `description` field is **not persisted** (planned). 🟡
+  * Uniqueness is scoped **per owner** (`user_id`), not global.
+* **Lifecycle**: Inactive products cannot be selected for new customer configurations; historical delivery transactions are never modified. ✅ Implemented
+* **Deletion**: Products can be **hard-deleted** together with their dependent rows (configs, price history, transactions, bill items) via JDBC cleanup. This intentionally exceeds the brief's "soft-deactivate only" stance. 🟡 (documented deviation)
 
 ---
 
 ## 4. Customer Management
-Customers are individuals or local businesses purchasing dairy products regularly.
-* **Fields**:
-  * Customer ID
-  * Name (Required)
-  * Mobile Number
-  * Address
-  * Village
-  * Landmark
-  * Start Date (Required)
-  * Status (ACTIVE or INACTIVE)
-  * Notes
-* **Soft Deactivation**: Customers cannot be hard-deleted from the database if they have historical deliveries. Their status is marked `INACTIVE` to hide them from current sheets, preserving history.
+
+* **Fields**: Name (required), Mobile number, Address, Start date, Status (`ACTIVE` / `INACTIVE`), Notes, system timestamps. ✅ Implemented
+* **Not built** (planned): `village` and `landmark` fields. 📋
+* **Uniqueness**: Case-insensitive customer name per owner, enforced at the repository level and validated in the API. ✅ Implemented
+* **Lifecycle**: Status can be toggled `ACTIVE` / `INACTIVE` via `PATCH /{id}/status`. Inactive customers are excluded from new delivery sheets; all history is preserved. ✅ Implemented
+* **Deletion**: Customers can be **hard-deleted**; the API cascades deletion of configs, price history, transactions, and bills in one transaction. 🟡 (deviation from "soft-delete only")
+* **On create**: a default `CustomerProductConfig` is created from the form's quantity/rate, falling back to the owner's milk-like product. ✅ Implemented
 
 ---
 
 ## 5. Customer-Specific Pricing & Defaults
-Different customers can buy the same product at different prices.
-* **Pricing Hierarchy**:
-  1. Transaction-specific price override (one-time)
-  2. Customer-specific configured price
-  3. Product's default price
-* **Price History**:
-  * Changing a customer's custom price must not alter past transaction values.
-  * Price changes are recorded with an effective date range (`start_date`, `end_date`) to preserve auditability.
-* **Default Customer Subscription**:
-  * Each customer has a configurable regular profile mapping the products they buy by default.
-  * Captures different default quantities for **Morning** and **Evening** sessions (e.g., Ramesh receives 1.5 L in the Morning, and 0.5 L in the Evening).
+
+* **Pricing hierarchy** (highest wins): 1. price entered on the day's sheet row → 2. `CustomerProductConfig.customPrice` → 3. `Product.defaultPrice`. ✅ Implemented
+* **Snapshotting**: the applied price is written onto the delivery transaction at save time; later price changes never rewrite historical rows. ✅ Implemented
+* **Price history**: changing a custom price closes the previous open `CustomerPriceHistory` interval (ends yesterday) and opens a new one starting today. ✅ Implemented
+* **Default subscription**: each customer maps products to default quantities and prices via `CustomerProductConfig` (unique per customer+product, with an `active` flag). ✅ Implemented
+* **Deviation**: the brief's separate **Morning** and **Evening** default quantities are consolidated into a single `default_quantity`; delivery operates a single `DAILY` session. 🟡 (see §6)
 
 ---
 
 ## 6. Daily Delivery / Sales System
-This is the most critical day-to-day module.
-* **Sessions**: Standardized to **Morning** and **Evening** deliveries.
-* **Delivery Sheet**:
-  * Pre-fills active customers and their default quantities for the selected session.
-  * The farmer can edit the quantity or price for that day without affecting the default customer configuration.
-* **Delivery Statuses**:
-  * `DELIVERED`: Standard delivery. Quantity is recorded, transaction total is calculated.
-  * `NOT_DELIVERED` / `SKIPPED`: Customer was absent or skipped. Quantity is set to 0, no charges are recorded.
-* **Applied Price Snapshotting**:
-  * The exact price applied at the moment of delivery must be written directly to the transaction row.
+
+The core operational module. ✅ Implemented
+
+* **Sessions**: the brief specified Morning/Evening; the running system uses a single **`DAILY`** session (schema retains a `session` column; migrator consolidates legacy morning/evening quantities into `default_quantity`). 🟡
+* **Delivery sheet** (`GET /api/deliveries/sheet?date=…`):
+  * Pre-fills customers whose effective start date is on or before the chosen date (effective start = earlier of `startDate` and `createdAt`). ✅
+  * Rows carry default quantity vs actual quantity, unit, applied price, status, and notes. ✅
+  * Per-row quantity/price edits do **not** mutate the customer's default configuration. ✅
+  * Bulk actions: **Mark all present** / **Mark all absent**. ✅
+  * Extra product lines can be added per customer for that day. ✅
+* **Statuses**: `DELIVERED` (quantity recorded, total computed server-side as `quantity × appliedPrice`) and `SKIPPED` (quantity 0, no charges). The sheet uses `UNMARKED` client-side before save. ✅
+* **Persistence**: `POST /api/deliveries/bulk` performs an upsert per row (unique key: customer + product + date + session). Rows dated before a customer's effective start are rejected. ✅
+* **Attendance calendar**: monthly per-customer history (present/absent days, daily volume) via `GET /api/deliveries/customer-history/{customerId}`. ✅
 
 ---
 
 ## 7. Billing Engine
-* **Generation**: Manually generated by the farmer for a selected billing period (typically monthly).
+
+* **Generation**: manual, by the owner, for an inclusive start/end date range — for one customer or all of the owner's customers. ✅ Implemented
 * **Calculation**:
+
   $$\text{Bill Total} = \sum (\text{delivered\_quantity} \times \text{snapshotted\_applied\_price})$$
-* **Bill Properties**:
-  * Customer reference
-  * Billing Period (Start Date, End Date)
-  * Total Amount
-  * Paid Amount (Starts at 0.00)
-  * Outstanding Amount (Total - Paid)
-  * Status (`UNPAID`, `PARTIALLY_PAID`, `PAID`)
+
+  computed from `DELIVERED` transactions in the range (never from subscription defaults). ✅ Implemented
+* **Bill properties**: customer reference, period start/end, issue date, total amount, paid amount (starts 0.00), outstanding amount, status (`UNPAID` / `PARTIALLY_PAID` / `PAID`). ✅ Implemented
+* **Regeneration**: generating a bill for the same customer and exact period replaces its line items and resets paid/outstanding to 0 / `UNPAID`. ✅ Implemented
+* **Invoice output**: per-product summary line items (`bill_items` with quantity, average price, amount), day-wise delivery listing, browser print, and A4 PDF via `html2pdf.js`. ✅ Implemented
 
 ---
 
 ## 8. Payments
-* **Supported Methods**: Cash, UPI, Bank Transfer, Other.
-* **Fields**: Customer, Date, Amount (Required, Positive), Payment Method, Reference Number (for UPI/UTR), Notes.
-* **Allocation Logic (FIFO)**:
-  * Recorded payments automatically pay down the customer's oldest unpaid or partially paid bills in chronological order.
-  * Updates `paid_amount` and `outstanding_amount` on corresponding bills.
+
+* **Methods**: free-form strings; tests exercise `UPI` and `CASH`. (The entity comment documents `CASH`, `UPI`, `BANK_TRANSFER`, `OTHER`; no DB-level CHECK constraint.) 🟡
+* **Fields**: customer, date, amount (required, strictly positive — validated), method, reference number, notes. ✅ Implemented
+* **FIFO allocation**: a recorded payment pays down the customer's oldest unpaid/partially-paid bills in `bill_period_start` order, updating `paid_amount`, `outstanding_amount`, and status. ✅ Implemented
+* **Deviation**: excess amount beyond all outstanding bills is **not** stored as customer credit. 📋 (roadmap)
+* **UI**: allocation logic exists on the API and in tests only; no payments page in the React app yet. 📋
 
 ---
 
 ## 9. Reports
-* **Dashboard Summary**:
-  * Today's sales (₹)
-  * Total milk sold today (L)
-  * Active customer count
-  * Total outstanding balances (₹)
-* **Sales Reports**: Product-wise and session-wise revenue logs with date range filters.
-* **Customer Reports**: Ledger summary containing total purchases, total amount billed, total payments, and current outstanding balance.
+
+* **Dashboard** (`GET /api/reports/dashboard`): today's sales (₹), milk volume sold today (name/category contains "milk"), customers served today, sum of bill outstanding amounts. ✅ Implemented
+* **Analytics** (`GET /api/reports/analytics`): date-range product share, top customers, day-by-day trend, 6-month trend, with optional product/customer filters. ✅ Implemented
+* **Customer ledger** (`GET /api/reports/customers`): billed / paid / outstanding totals per customer. ✅ Implemented
+* **Deviation**: session-wise revenue reporting is not applicable under the `DAILY` session model. 🟡
 
 ---
 
-## 10. UI/UX & Styling Requirements
-* **Mobile-First Responsive Layout**: Optimized for touch inputs on Android smartphones.
-* **Color Palette**: Strict Green + White visual identity.
-  * Primary Green: `#2E7D32`
-  * Dark Green: `#1B5E20`
-  * Medium Green: `#43A047`
-  * Light Green: `#E8F5E9`
-  * Very Light Green: `#F5FBF5`
-  * White: `#FFFFFF`
-  * Primary Text: `#1F2937`
-  * Secondary Text: `#6B7280`
-  * Borders: `#E5E7EB`
-  * Errors/Warnings: Red/Orange (e.g. `#D32F2F`, `#ED6C02`)
-* **Input Optimization**: Large tap areas, numeric selectors for adjustments (e.g. `+0.5L`, `-0.5L`), minimizing the need to type via the virtual keyboard.
+## 10. UI/UX & Styling
+
+* **Mobile-first responsive layout**: bottom navigation + slide-out drawer under 768px; sidebar above. ✅ Implemented
+* **Color palette**: green/white identity (primary `#2E7D32`, dark `#1B5E20`, light surfaces `#E8F5E9`/`#F5FBF5`, text `#1F2937`/`#6B7280`, error `#D32F2F`). ✅ Implemented
+* **Input optimization**: large tap targets, product-aware quantity preset chips (e.g. milk ±litres, paneer ±kg) minimizing keyboard use. ✅ Implemented
+* **Print/PDF styles** for invoices. ✅ Implemented
 
 ---
 
 ## 11. Core Business & Data Integrity Rules
-1. Quantities and prices cannot be negative.
-2. Payment amounts must be strictly positive.
-3. Every delivery must store its applied price snapshot.
-4. Unauthenticated users must be redirected to the login page.
-5. Inactivating a customer must preserve all historical transaction records.
-6. Old bills must not change when current prices are modified.
+
+1. Quantities and prices cannot be negative. ✅ (validated/computed server-side)
+2. Payment amounts must be strictly positive. ✅
+3. Every delivery stores its applied price snapshot at save time. ✅
+4. Unauthenticated users are redirected to the login page (`ProtectedRoute` client-side; Spring Security server-side). ✅
+5. Deactivating a customer preserves all historical records. ✅ (hard delete also exists, explicitly)
+6. Old bills and transactions never change when current prices are modified. ✅
 
 ---
 
-## 12. Future Roadmap (Out of Scope for MVP)
-* **Milk Production**: Track raw yields from cows/buffaloes.
-* **Inventory**: Track milk conversion to curd, paneer, and ghee, and manage physical stocks.
-* **Expenses**: Record cattle feed, electricity, packaging, labor, and transport.
-* **Profitability**: Auto-calculate Net Profit = Revenue - Expenses.
+## 12. Authentication & Tenancy
+
+* Registration creates a `User` (`ROLE_OWNER`) plus a `DairyProfile`; login issues a JWT (HS256, configurable TTL, default 30 days). ✅
+* All operational data is scoped to the authenticated owner at the query level. ✅
+* Known open items (tracked in README "Security notes"): two report endpoints and the payments list are not yet principal-scoped; CORS is fully permissive; password reset is UI-simulated only. 🟡
+
+---
+
+## 13. Out of Scope (Confirmed)
+
+* Milk production / livestock yield tracking
+* Inventory and conversion (milk → curd/paneer/ghee)
+* Expense tracking
+* Profitability reporting (revenue − expenses)
+
+---
+
+## 14. Planned (From Brief, Not Yet Built)
+
+| Item | Origin |
+| --- | --- |
+| Customer `village` / `landmark` fields; product `description` | §4, §3 |
+| Morning/Evening sessions as the operating model | §5, §6 |
+| Payments page in the UI | §8 |
+| Customer credit for excess payments | §8 |
+| Password reset flow (server-backed) | — |
+| Soft-delete-only lifecycle for customers/products | §3, §4 |
