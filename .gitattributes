@@ -1,0 +1,27 @@
+# Normalize line endings: LF in the repo and on checkout for everything texty.
+* text=auto eol=lf
+
+# Sources
+*.java text
+*.ts text
+*.tsx text
+*.js text
+*.json text
+*.css text
+*.html text
+*.md text
+*.yml text
+*.yaml text
+*.sql text
+
+# Windows scripts keep CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binaries
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.jar binary
+*.class binary
