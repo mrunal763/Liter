@@ -5,6 +5,18 @@ backend/target/
 frontend/node_modules/
 frontend/dist/
 
+# Environment files (keep templates only)
+.env
+.env.local
+*.env
+!*.env.example
+
+# Agent config
+.freebuff/
+
+# Bundled toolchains accidentally committed
+.maven/
+
 # IDE
 .idea/
 *.iml
