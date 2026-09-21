@@ -2,11 +2,17 @@
 
 **Dairy Business Management** for dairy owners who deliver milk and related products on a daily route.
 
-**Live app:** [https://liter-nine.vercel.app](https://liter-nine.vercel.app/)
+🟢 **Live app:** [liter-nine.vercel.app](https://liter-nine.vercel.app/)
 
 LITER is a full-stack web application used by the **dairy owner**, not by customers. Each registered account owns its own customers, products, deliveries, and bills. The app covers the daily operational loop: maintain a catalog, enroll customers with subscription quantities and custom prices, mark present/absent on a daily delivery sheet, generate period bills from **actual delivered transactions**, and review sales analytics.
 
 There is no customer portal, no employee-role UI, and no production/inventory module in the current codebase.
+
+## Badges
+Top of README after the title:
+```
+![Java](https://img.shields.io/badge/Java-21-orange) ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.2-brightgreen) ![React](https://img.shields.io/badge/React-19-61dafb) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue) ![Vite](https://img.shields.io/badge/Vite-8-purple) ![License](https://img.shields.io/badge/license--none-RED)
+```
 
 ---
 
@@ -30,8 +36,9 @@ There is no customer portal, no employee-role UI, and no production/inventory mo
 - [Testing](#testing)
 - [Deployment](#deployment)
 - [Responsive design](#responsive-design)
-- [Security considerations](#security-considerations)
+- [Security notes](#security-notes)
 - [Future improvements](#future-improvements)
+- [License](#license)
 
 ---
 
@@ -157,11 +164,11 @@ Verified from `backend/pom.xml`, `frontend/package.json`, `application.yml`, and
 | Auth | Spring Security + JJWT **0.11.5** (HS256) |
 | Persistence | Spring Data JPA, Hibernate `ddl-auto: update`, PostgreSQL driver |
 | Build (API) | Maven, `spring-boot-maven-plugin` executable JAR |
-| Language (UI) | TypeScript ~6, React **19.2.8**, React DOM 19.2.8 |
-| Routing | `react-router-dom` **7.18.2** |
-| Build (UI) | Vite **8.2.2**, `@vitejs/plugin-react` |
+| Language (UI) | TypeScript, React **19**, React DOM 19 |
+| Routing | `react-router-dom` **7** |
+| Build (UI) | Vite **8**, `@vitejs/plugin-react` |
 | UI libraries | `lucide-react`, `date-fns` |
-| PDF | `html2pdf.js` **0.10.1** (CDN script, not an npm dependency) |
+| PDF | `html2pdf.js` (CDN script, not an npm dependency) |
 | Lint | `oxlint` (`npm run lint`) |
 | Database (local compose) | `postgres:15-alpine` |
 | Containers | `backend/Dockerfile` (Temurin 21 JRE); root `docker-compose.yml` is **Postgres only** |
@@ -214,7 +221,7 @@ Liter/
 │       │   ├── dto/
 │       │   ├── model/             # JPA entities
 │       │   ├── repository/
-│       │   ├── security/          # JWT filter, JwtUtils, SecurityConfig, UserDetailsServiceImpl
+│       │   ├── security/          # JWT dev fallback secret, JWT filter, SecurityConfig
 │       │   └── service/           # BillingService, PaymentService
 │       ├── main/resources/application.yml
 │       └── test/java/com/liter/service/BillingAndPaymentTests.java
@@ -223,7 +230,7 @@ Liter/
 │   ├── vercel.json                # SPA rewrite to index.html
 │   ├── vite.config.ts
 │   ├── package.json
-│   ├── .env                       # VITE_API_URL for local/dev
+│   ├── .env.example               # template — copy to .env
 │   └── src/
 │       ├── main.tsx / App.tsx / App.css / index.css
 │       ├── config/api.ts
@@ -236,8 +243,6 @@ Liter/
 ├── implementation.md              # Earlier architecture notes (some paths differ from the tree)
 └── README.md
 ```
-
-`backend/src/main/java/com/liter/StreamHandler.java` exists but is **not** the web entry point; `LiterApplication.main` is. The current `pom.xml` does not declare AWS Lambda dependencies.
 
 ---
 
@@ -311,7 +316,7 @@ erDiagram
 | `DeliveryTransaction` | `delivery_transactions` | Unique `(customer_id, product_id, delivery_date, session)`. Status values used in code: `DELIVERED`, `SKIPPED`; sheet also uses `UNMARKED` before save. |
 | `Bill` | `bills` | Status `UNPAID`, `PARTIALLY_PAID`, `PAID`. |
 | `BillItem` | `bill_items` | Per-product totals and average price for the bill period. |
-| `Payment` | `payments` | Methods stored as strings (tests use `UPI`, `CASH`; entity comment lists CASH, UPI, BANK_TRANSFER, OTHER). |
+| `Payment` | `payments` | Methods stored as strings. |
 
 ---
 
@@ -365,7 +370,7 @@ Base path: `/api`. All routes below exist on the controllers listed.
 | POST | `/` | Create customer + default config |
 | PUT | `/{id}` | Update identity fields (not status) |
 | PATCH | `/{id}/status` | `ACTIVE` or `INACTIVE` |
-| DELETE | `/{id}` | Delete customer and related configs, history, deliveries, bills |
+| DELETE | `/{id}` | Delete customer and related rows |
 | GET | `/{id}/configs` | Config rows for milk-like (or all) active products |
 | PUT | `/{customerId}/configs/{productId}` | Upsert quantity, custom price, active; price history |
 
@@ -377,7 +382,7 @@ Base path: `/api`. All routes below exist on the controllers listed.
 | POST | `/` | Create |
 | PUT | `/{id}` | Update |
 | PATCH | `/{id}/status` | Toggle `active` |
-| DELETE | `/{id}` | Delete product and dependent rows (JDBC cleanup) |
+| DELETE | `/{id}` | Delete product and dependent rows |
 
 ### Deliveries — `/api/deliveries`
 
@@ -406,7 +411,7 @@ Base path: `/api`. All routes below exist on the controllers listed.
 | Method | Path | Purpose |
 | --- | --- | --- |
 | POST | `/` | Record payment + FIFO allocation |
-| GET | `/` | Optional `customerId`; omit → `findAll()` |
+| GET | `/` | Optional `customerId`; omit → all rows |
 
 ### Reports — `/api/reports`
 
@@ -468,20 +473,19 @@ History listing with both `start` and `end` uses bills whose period is **fully i
 
 ## Environment variables
 
-Names taken from `application.yml` and `frontend/src/config/api.ts`. Do not commit production secrets.
+Copy `frontend/.env.example` to `frontend/.env` and adjust. Backend env vars are supplied by your shell, IDE run config, or hosting platform — nothing secret is committed.
 
 | Name | Where | Purpose |
 | --- | --- | --- |
 | `DB_URL` | Backend | JDBC URL. Local default: `jdbc:postgresql://localhost:5432/liter` |
 | `DB_USERNAME` | Backend | DB user. Local default: `postgres` |
-| `DB_PASSWORD` | Backend | DB password (set via env in deployed environments) |
-| `JWT_SECRET` | Backend | HMAC key for JJWT (`liter.jwt.secret`). Must be long enough for HS256 |
+| `DB_PASSWORD` | Backend | DB password. **No committed default** — must be provided |
+| `JWT_SECRET` | Backend | HMAC key for JJWT (`liter.jwt.secret`). Must be long enough for HS256. **No committed default** — must be provided |
 | `JWT_EXPIRATION` | Backend | Token lifetime in milliseconds (`liter.jwt.expiration-ms`). Default `2592000000` (30 days) |
-| `VITE_API_URL` | Frontend (Vite) | API origin. Code appends `/api` if missing. Local example in `frontend/.env`: host `http://localhost:8080/api` |
+| `VITE_API_URL` | Frontend (Vite) | API origin. Code appends `/api` if missing. See `frontend/.env.example` |
+| `POSTGRES_PASSWORD` | docker compose | Compose reads it from the environment (or a local, untracked `.env` file) |
 
 Other `application.yml` settings (not env-prefixed): `server.port` **8080**, Hikari pool sizes, `spring.jpa.hibernate.ddl-auto: update`.
-
-`docker-compose.yml` sets `POSTGRES_DB=liter` and `POSTGRES_USER=postgres` (and a compose password that should match whatever you put in `DB_PASSWORD` / local defaults).
 
 ---
 
@@ -489,7 +493,7 @@ Other `application.yml` settings (not env-prefixed): `server.port` **8080**, Hik
 
 - JDK **21**
 - Apache Maven **3.9+** (no `mvnw` in this repo)
-- Node.js compatible with Vite 8 / the versions in `package.json` (documented in the previous project README as 18+)
+- Node.js 18+ (or the versions in `frontend/package.json`)
 - npm
 - PostgreSQL **15** (or use Docker Compose below), database name `liter`, reachable on port **5432** for local defaults
 
@@ -500,7 +504,8 @@ Other `application.yml` settings (not env-prefixed): `server.port` **8080**, Hik
 ### 1. Database
 
 ```bash
-docker compose up -d
+# Choose a local password and pass it through compose
+POSTGRES_PASSWORD=your_local_password docker compose up -d
 ```
 
 This starts container `liter-postgres` only.
@@ -511,7 +516,7 @@ Alternatively create a local database named `liter` and set `DB_*` to match.
 
 ```bash
 cd backend
-mvn spring-boot:run
+DB_PASSWORD=your_local_password JWT_SECRET=$(openssl rand -base64 48) mvn spring-boot:run
 ```
 
 API: `http://localhost:8080`.
@@ -529,6 +534,7 @@ The JAR is written under `backend/target/` (that directory is gitignored).
 
 ```bash
 cd frontend
+cp .env.example .env
 npm install
 npm run dev
 ```
@@ -555,10 +561,10 @@ For a clean local database: drop/recreate `liter` (or remove the Compose volume 
 
 ```bash
 cd backend
-mvn test
+DB_PASSWORD=... JWT_SECRET=... mvn test
 ```
 
-`BillingAndPaymentTests` is a `@SpringBootTest` (no `@ActiveProfiles` override and no H2 dependency). It expects the same PostgreSQL settings as the app. Tests cover:
+`BillingAndPaymentTests` is a `@SpringBootTest` — it expects a reachable PostgreSQL matching your `DB_*` settings, so point `DB_URL` at a **scratch database**, not production. Tests cover:
 
 - Custom price preferred over default price and bill total from `DELIVERED` rows
 - FIFO payment allocation across two bills (`PAID` / `PARTIALLY_PAID`)
@@ -584,7 +590,7 @@ Artifacts in the repo:
 | --- | --- | --- |
 | Backend image | `backend/Dockerfile` | Build with Maven (`-DskipTests`), run `java -jar app.jar`, expose **8080**, `-Djava.net.preferIPv4Stack=true` |
 | Frontend SPA host | `frontend/vercel.json` | Rewrite `/(.*)` → `/index.html` |
-| Database | `docker-compose.yml` | Postgres 15 only |
+| Database | `docker-compose.yml` | Postgres 15 only, password from env |
 
 Typical production wiring (variable names only):
 
@@ -603,30 +609,30 @@ Compose does **not** build or run the Spring Boot or Vite services.
 From `frontend/index.html` and `frontend/src/index.css`:
 
 - Viewport: `width=device-width`, `viewport-fit=cover`, `theme-color`, iOS web-app meta tags.
-- **&lt; 768px**: sticky header, bottom nav (Dashboard, Delivery, Customers, Billing, More), slide-out `MoreDrawer`.
+- **< 768px**: sticky header, bottom nav (Dashboard, Delivery, Customers, Billing, More), slide-out `MoreDrawer`.
 - **≥ 768px**: left sidebar, header and bottom nav hidden.
 - Touch-oriented controls on the delivery sheet (preset quantity chips).
 - Print/PDF styles for the billing invoice card.
 
-This is a mobile-friendly responsive web app, not a separate native binary or a service-worker PWA (no manifest/service worker in the tree).
+This is a mobile-friendly responsive web app, not a native binary or a service-worker PWA (no manifest/service worker in the tree).
 
 ---
 
-## Security considerations
+## Security notes
 
-Present in code:
+Handled in this repo:
 
 - Passwords hashed with **BCrypt**.
 - JWT signed with **HS256**; secret and TTL from configuration.
 - Most operational queries filter by the authenticated `User`.
-- CORS is enabled for all origin patterns with credentials.
-- Unique customer names per owner.
+- No default database password or JWT secret committed — supply both via environment.
+- `frontend/.env` is not tracked; use `.env.example` as the template.
 
-Gaps a new developer should treat as known:
+Known gaps a new developer should treat as open:
 
 - CSRF is disabled (stateless JWT).
-- Default JWT secret and local DB credentials exist in `application.yml` for development only.
-- Seed `admin` user if the table is empty.
+- CORS is enabled for all origin patterns with credentials.
+- Seed `admin` user if the users table is empty.
 - `GET /api/reports/dashboard` and `GET /api/reports/products` are not filtered by `Principal` (dashboard uses all of today's deliveries and all bills).
 - `GET /api/payments` without `customerId` returns every payment.
 - Customer history calendar has no owner check in the controller.
@@ -662,6 +668,12 @@ Separated from what is implemented. Sources: `requirement.md` §12, plus gaps ve
 - Versioned migrations instead of ad-hoc startup SQL
 - Maven Wrapper so JDK/Maven versions are pinned without a global install
 - Automated frontend tests
+
+---
+
+## License
+
+No license is currently attached. All rights reserved by the author until a LICENSE file is added.
 
 ---
 
